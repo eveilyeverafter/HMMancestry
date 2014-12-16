@@ -31,5 +31,6 @@ check_est_input <- function(snp_dat, p_assign, p_trans, ...){
 #' @export 
 print.fwd.back <- function(x, ...){
     ## make pretty output format
+    ## print to screen
 }
 
