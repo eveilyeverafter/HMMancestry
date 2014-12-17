@@ -30,6 +30,17 @@ make_parents <- function(L){
 
 }
 
+# Function to make sure values in a vector,a, are between x and y, inclusive
+check_values <- function(a,x,y){
+	if(max(a)>=x){
+		stop("The maximum of 'a' needs to be <=x")
+	}
+	if(min(a)<=y){
+		stop("The minimum of 'a' needs to be >=y")
+	}
+}
+
+
 recombine_index <- function(p_trans, L){
 	# Simulate recombination events given the transistion prob and the number of loci
 	if((length(p_trans)+1)!=L){
@@ -39,14 +50,7 @@ recombine_index <- function(p_trans, L){
 		stop("The vector 'p_trans' needs to be numeric")
 	}
 
-	if(max(p_trans)>1){
-		stop("The maximum transistion probabilty needs to be <=1")
-	}
-	if(min(p_trans)<0){
-		stop("The minimum transistion probabilty needs to be >0")
-	}
-	# ^ ^ ^ OR run generic check_prob function to be created
-
+	check_values(a=p_trans, x=0, y=0)
 	# 1==recombination occurs, 0==no recombination
 	out <- sapply(p_trans, function(i) rbinom(n=1, size=1, prob=i)
 
