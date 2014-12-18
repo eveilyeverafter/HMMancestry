@@ -33,18 +33,15 @@ make_parents <- function(L){
 # Function to make sure values in a vector, a, are between x and y, inclusive:
 check_values <- function(a,x,y){
 	if(max(a)>y){
-		stop(paste("The maximum of 'a' needs to be <=", y, sep=""))
+		stop(paste("The maximum of 'a' needs to be <", y, sep=""))
 	}
 	if(min(a)<x){
-		stop(paste("The minimum of 'a' needs to be >=", x,sep=""))
+		stop(paste("The minimum of 'a' needs to be >", x,sep=""))
 	}
 }
 
 # Simulate recombination events given the vector transistion probs and the number of loci
-recombine_index <- function(p_trans, L){
-	if((length(p_trans)+1)!=L){
-		stop(paste("The vector 'p_trans' needs to be of length ", L-1, sep=""))
-	}
+recombine_index <- function(p_trans){
 	if(class(p_trans)!="numeric"){
 		stop("The vector 'p_trans' needs to be numeric")
 	}
@@ -68,12 +65,12 @@ switch_values <- function(i){
 	}
 }
 
-mutate <- function(xx, mu=mu){
+mutate_snps <- function(xx, mu=mu){
 	# MLG <- multilocus genotype
 	ll <- length(xx)
-	to.mutate <- sample(x=c(0,1), ll, prob=c(1-mu,mu), replace=TRUE)
-	if(sum(to.mutate>0)){
-		xx[which(to.mutate==1)] <- sapply(xx[which(to.mutate==1)], switch_values)
+	to.mutate_snps <- sample(x=c(0,1), ll, prob=c(1-mu,mu), replace=TRUE)
+	if(sum(to.mutate_snps>0)){
+		xx[which(to.mutate_snps==1)] <- sapply(xx[which(to.mutate_snps==1)], switch_values)
 	}
 	return(xx)
 }
@@ -85,13 +82,13 @@ recombine <- function(parents, r.index, mu.rate){
 	}
 	# S-phase and mutation
 	chromotids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
-	chromotids.mutated <- lapply(chromotids.orig, function(i, ...){
-		mutate(i, mu=mu.rate)
+	chromotids.mutated_snps <- lapply(chromotids.orig, function(i, ...){
+		mutate_snps(i, mu=mu.rate)
 		})
 	# sample one chromotid from each parent to recombine:
 	picked.chromotids <- c(sample(x=c(1,2), size=1, prob=c(0.5, 0.5)), sample(x=c(3,4), size=1, prob=c(0.5, 0.5)))
-	chromotids <- data.frame(one=chromotids.mutated[[picked.chromotids[1]]], 
-					   two=chromotids.mutated[[picked.chromotids[2]]])
+	chromotids <- data.frame(one=chromotids.mutated_snps[[picked.chromotids[1]]], 
+					   two=chromotids.mutated_snps[[picked.chromotids[2]]])
 	# recombine these two chromotids:				
 	l <- (length(chromotids[[1]]))
 	for(i in 1:(l-1)){
@@ -101,12 +98,12 @@ recombine <- function(parents, r.index, mu.rate){
 				chromotids[(i+1):l,] <- cbind(two, one)
 		}
 	}	
-	chromotids.recombined <- chromotids.mutated
+	chromotids.recombined <- chromotids.mutated_snps
 	chromotids.recombined[[picked.chromotids[1]]] <- chromotids[,1]
 	chromotids.recombined[[picked.chromotids[2]]] <- chromotids[,2]
 
 	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, 
-			chromotids.mutated=chromotids.mutated, picked.chromotids=picked.chromotids, 
+			chromotids.mutated_snps=chromotids.mutated_snps, picked.chromotids=picked.chromotids, 
 			chromotids.recombined=chromotids.recombined)
 	class(out) <- c("list", "recombine")
 	return(out)	
@@ -114,7 +111,7 @@ recombine <- function(parents, r.index, mu.rate){
 
 
 # Simulate sequencing of x coverage across simulated data: 
-coverage_sim <- function(a, p_assign, coverage){
+simulate_coverage <- function(a, p_assign, coverage){
 	if(!inherits(a, "recombine")){
 		stop(paste("Object 'a' needs to be of class 'recombine'.", sep=""))
 	}
@@ -146,14 +143,56 @@ coverage_sim <- function(a, p_assign, coverage){
 
 	})
 
+	class(out) <- c("list", "snp.recom")
 	return(out)
 }
 
 
+# testing the simulation and fb algorithms
+set.seed(123456)
+l <- 100
+rec <- 0.01
+p_a <- 0.9
+p <- make_parents(l)
+r <- recombine_index(rep(rec, l-1))
+a <- recombine(parents=p, r.index=r, mu.rate=0.01)
+sim_reads <- simulate_coverage(a=a, p_assign=p_a, coverage=10)
+
+fbres1 <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=1, 
+	chr_name="I", snp_locations=c(1:l), p_assign=p_a, p_trans=rec)
+fbres2 <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=2, 
+	chr_name="I", snp_locations=c(1:l), p_assign=p_a, p_trans=rec)
+fbres3 <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=3, 
+	chr_name="I", snp_locations=c(1:l), p_assign=p_a, p_trans=rec)
+fbres4 <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=4, 
+	chr_name="I", snp_locations=c(1:l), p_assign=p_a, p_trans=rec)
+
+# black = true ancestral assignment (identical by state) from simulation
+# non-red color =posterior prob from fb algorithm
+# red = location of mutated snps
+mut_locs <- c(which(a$chromotids.mutated_snps$p1_1==1),
+			  which(a$chromotids.mutated_snps$p1_2==1),
+			  which(a$chromotids.mutated_snps$p2_1==0),
+			  which(a$chromotids.mutated_snps$p2_2==0))
+
+par(mfrow=c(2,2))
+plot(fbres1$snp_locations, fbres1$posterior[,1], xlab="snp", ylab="posterior probability of parent '0' ancestry", main="spore 1", ylim=range(0,1), type="l", col="blue")
+points(fbres1$snp_locations, sapply(a$chromotids.recombined$p1_1, switch_values), col="black", type="l")
+abline(v=mut_locs, col="red")
+
+plot(fbres2$snp_locations, fbres2$posterior[,1], xlab="snp", ylab="posterior probability of parent '0' ancestry", main="spore 2", ylim=range(0,1), type="l", col="orange")
+points(fbres2$snp_locations, sapply(a$chromotids.recombined$p1_2, switch_values), col="black", type="l")
+abline(v=mut_locs, col="red")
 
 
+plot(fbres3$snp_locations, fbres3$posterior[,1], xlab="snp", ylab="posterior probability of parent '0' ancestry", main="spore 3", ylim=range(0,1), type="l", col="green")
+points(fbres3$snp_locations, sapply(a$chromotids.recombined$p2_1, switch_values), col="black", type="l")
+abline(v=mut_locs, col="red")
 
 
+plot(fbres4$snp_locations, fbres4$posterior[,1], xlab="snp", ylab="posterior probability of parent '0' ancestry", main="spore 4", ylim=range(0,1), type="l", col="purple")
+points(fbres4$snp_locations, sapply(a$chromotids.recombined$p2_2, switch_values), col="black", type="l")
+abline(v=mut_locs, col="red")
 
 
 
