@@ -68,10 +68,9 @@ switch_values <- function(i){
 	}
 }
 
-mutate <- function(MLG, mu=mu){
+mutate <- function(xx, mu=mu){
 	# MLG <- multilocus genotype
-	ll <- length(MLG)
-	xx <- MLG
+	ll <- length(xx)
 	to.mutate <- sample(x=c(0,1), ll, prob=c(1-mu,mu), replace=TRUE)
 	if(sum(to.mutate>0)){
 		xx[which(to.mutate==1)] <- sapply(xx[which(to.mutate==1)], switch_values)
@@ -115,15 +114,46 @@ recombine <- function(parents, r.index, mu.rate){
 
 
 # Simulate sequencing of x coverage across simulated data: 
-coverage_sim_bionom <- function(a, p_assign, coverage){
+coverage_sim <- function(a, p_assign, coverage){
 	if(!inherits(a, "recombine")){
 		stop(paste("Object 'a' needs to be of class 'recombine'.", sep=""))
 	}
 
+	simulated.reads.total <- lapply(a$chromotids.recombined, function(i) return(rpois(i, coverage)))
+	
+	# This block returns the number of simulated reads for each parental type, 0 and 1, for each snp position.
+	out <- lapply(1:4, function(i){
+		correct_reads <- rbinom(size=simulated.reads.total[[i]], prob=p_assign, n=simulated.reads.total[[i]])
+		incorrect_reads <- simulated.reads.total[[i]] - correct_reads 
 
-	rbinom(n=1, prob=p_assign, size=coverage)
+		p0.assign <- sapply(1:length(a$chromotids.recombined[[i]]), function(x){
+				if(a$chromotids.recombined[[i]][x]==0){
+					return(correct_reads[x])
+				}
+				if(a$chromotids.recombined[[i]][x]==1){
+					return(incorrect_reads[x])
+				}
+			})
+		p1.assign <- sapply(1:length(a$chromotids.recombined[[i]]), function(x){
+				if(a$chromotids.recombined[[i]][x]==1){
+					return(correct_reads[x])
+				}
+				if(a$chromotids.recombined[[i]][x]==0){
+					return(incorrect_reads[x])
+				}
+			})
+		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
 
-	# output has the number of simulated reads for each parent
+	})
+
+	return(out)
 }
+
+
+
+
+
+
+
 
 
