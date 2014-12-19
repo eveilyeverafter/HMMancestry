@@ -77,8 +77,7 @@ estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, snp_locations
     # 7) total likelihood:
     lnL = sum(log(scale))
 
-    out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name,
-             snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans, 
+    out <- list(, 
              emissions=emissions, forward=forward, backward=backward, scale=scale, 
              posterior=posterior, lnL=lnL)
 

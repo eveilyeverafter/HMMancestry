@@ -7,9 +7,7 @@ estimate_anc_viterbi <- function(snp_dat, p_assign, p_trans, ...){
 }
 
 
-snp_dat=sim_reads; spore_number=4; chr_name="I"; snp_locations=c(1:l); p_assign=p_a; p_trans=rec
-
-BinomViterbi <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans){
+viterbi <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans){
  
     check_est_input(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans)
     # Distance between each snp
@@ -42,27 +40,37 @@ BinomViterbi <- function(snp_dat, spore_number, chr_name, snp_locations, p_assig
         for(j in 1:2){
             T1[j,i] <- max(T1[k,i-1]+A[k,j]+B[k,i])
             tmp <- names(which(T1[k,i-1]+A[k,j]+B[k,i]==T1[j,i]))
+            # if(length(tmp)==2){
+            #     warning(paste("Transition from either state '0' or '1' and emitting state ", j-1 , " is equally likely at snp ", i, ".  Sequence coverage may be too low for Viterbi.", sep=""))
+            # }
             if(length(tmp)==2){
-                warning(paste("Transition from either state '0' or '1' and emitting state ", j-1 , " is equally likely at snp ", i, ".  Sequence coverage may be too low for Viterbi.", sep=""))
+                T2[j,i] <- 0.5
             }
-            if(tmp=="p0"){
-                T2[j,i] <- 0  
-            }
-            if(tmp=="p1"){
-                T2[j,i] <- 1
-            }     
+            if(length(tmp)==1){
+                if(tmp=="p0"){
+                    T2[j,i] <- 0  
+                }
+                if(tmp=="p1"){
+                    T2[j,i] <- 1
+                }  
+            }   
         }
     }
     z_T <- apply(T1, 2, max)
     states <- numeric(n_snps)
 
-    for(i in length(z_T):2){
+    for(i in length(z_T):1){
         states[i] <- T2[which(T1[,i]==z_T[i]),i]
     }
-    states[1] <- states[2]
-    # ^ ^ ^ Why overwrite? 
 
-    return(states)
+    out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name,
+             snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans, T1=T1, T2=T2, states=states)
+    class(out) <- c("list", "viterbi")
+    return(out)
     }
+
+
+
+
 
 
