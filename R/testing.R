@@ -6,7 +6,7 @@ p_a <- .95
 p <- make_parents(l)
 r <- recombine_index(rep(rec, l-1))
 a <- recombine(parents=p, r.index=r, mu.rate=0)
-sim_reads <- simulate_coverage(a=a, p_assign=p_a, coverage=0.5)
+sim_reads <- simulate_coverage(a=a, p_assign=p_a, coverage=5)
 
 fbres1 <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=1, 
 	chr_name="I", snp_locations=c(1:l), p_assign=p_a, p_trans=rec)
