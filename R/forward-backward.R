@@ -38,9 +38,9 @@ estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, snp_locations
     k0 <- snp_dat[[spore_number]]$p0.assign
     k1 <- snp_dat[[spore_number]]$p1.assign
     n_i <- k0+k1
-    pY <- choose(n_i,k0)*(p_assign^k0)*((1-p_assign)^(n_i-k0))
-    pD <- choose(n_i,k1)*(p_assign^k1)*((1-p_assign)^(n_i-k1))    
-    emissions <- t(rbind(pY, pD))
+    p0 <- choose(n_i,k0)*(p_assign^k0)*((1-p_assign)^(n_i-k0))
+    p1 <- choose(n_i,k1)*(p_assign^k1)*((1-p_assign)^(n_i-k1))    
+    emissions <- t(rbind(p0, p1))
     #
     # 3) calculate pi[k] (vector of state probabilities at first position -- here use 1/k for each)
     #
@@ -73,11 +73,17 @@ estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, snp_locations
     for(i in 1:n_snps){
         posterior[i,] <- (forward[i,]*backward[i,])/(forward[i,1]*backward[i,1] + forward[i,2]*backward[i,2])
     }
+    # Bug: in rare cases the denominator of the above formula returns 0. This
+    # happens when there is the foward and backward probabilities each return 0 for alternate states.
+    # The result is "NaN" produced as a result. 
+    # The function check_tie (infer-recom.R) will treat these cases as missing data. 
+
 
     # 7) total likelihood:
     lnL = sum(log(scale))
 
-    out <- list(, 
+    out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name, 
+             snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans,
              emissions=emissions, forward=forward, backward=backward, scale=scale, 
              posterior=posterior, lnL=lnL)
 
