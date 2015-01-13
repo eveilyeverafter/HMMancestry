@@ -64,9 +64,9 @@ states <- states_mat[complete.cases(states_mat),]
 # with the the same recombination tract (i.e., 2:2 tract, gene conversion tract, etc.)
 
  
-# BUG: The current simulation code ignores gene conversions, GCs. 
+# The current simulation code ignores gene conversions, GCs. 
 # In cases where there is low sequencing coverage, the FB may take time to switch from one
-# parent to the other and this effect looks a lot like a gene conversion event. 
+# parent to the other and this effect looks like a gene conversion event. 
 # 
 # Simulate telomeric gene conversion:
 states[1:10,3] <- 1 # GC_tel
@@ -130,30 +130,124 @@ unique_regions <- function(states_mat){
     return(out)
 }
 
-unique_regions(states_mat=states)
+# unique_regions(states_mat=states)
 
+
+
+# For all regions lacking a 2:2 segregation, return the ancestral bias (0, or 1)
 check_GC_bias <- function(states_mat){
     if(!inherits(states_mat, "states.matrix")){
         stop(paste("Object 'states_mat' needs to be of class 'states.matrix'.", sep=""))
     }
     sums <- apply(states_mat[,2:5],1,sum)
-    # 0 = bias towards parent 0; 1 = bias towards parent 1.
-    all <- data.frame(snps=states_mat[,1], bias=sapply(sums, function(x){
+    # 0 = bias towards parent 0; 1 = bias towards parent 1; -1 = no bias (2:2).
+    out <- data.frame(snps=states_mat[,1], bias=sapply(sums, function(x){
             if(x<2){
-                return(1)
-            }
-            if(x==2){
-                return(NA)
-            }
-            if(x>2){
                 return(0)
             }
+            if(x==2){
+                return(-1)
+            }
+            if(x>2){
+                return(1)
+            }
             }))
-    out <- all[complete.cases(all),]
+    # out <- all[complete.cases(all),]
     return(out)
 }
 
-check_GC_bias(states_mat=states)
+# check_GC_bias(states_mat=states)
+
+# This internal function returns the actual segregation pattern:
+get_text <- function(states_mat){
+    if(!inherits(states_mat, "states.matrix")){
+        stop(paste("Object 'states_mat' needs to be of class 'states.matrix'.", sep=""))
+    }
+
+    return(paste(states_mat[,'one'],states_mat[,'two'],states_mat[,'three'], states_mat[,'four'], sep="_"))
+}
+
+
+# Infers the type of track along each position of a chromosome:
+infer_tracks <- function(states_mat, chr="I"){
+    if(!inherits(states_mat, "states.matrix")){
+        stop(paste("Object 'states_mat' needs to be of class 'states.matrix'.", sep=""))
+    }
+
+    # Get the unique candidate 'regions':
+    regions <- unique_regions(states_mat)
+
+    # Determine if there is a bias (non-2:2 segregation):
+    biases <- check_GC_bias(states_mat)
+
+    # Get the actual segregation pattern:
+    text <- get_text(states_mat)
+
+    # Combine datasets: 
+    CO_summary <- data.frame(snp=regions$states_mat[,'snp'], type=regions$type, GCbias=biases$bias, text=text)
+
+    # Go through the chromosome and call each region as a specific 'track':
+    # for(res in unique(CO_summary$type)){
+    infer <-   sapply(unique(CO_summary$type), function(res, ...){
+        type="NULL"
+        print(res)
+        res_range <- range(CO_summary$snp[which(CO_summary$type==res)])
+        extent <- res_range[2] - res_range[1]
+        
+        # Call a 2:2 region if present:
+        if(res>0){
+            type="2_2"
+            BIAS=-1
+        }
+         
+        if(res<0){
+            pos <- which(unique(CO_summary$type)==res)
+            
+            # If it's a non-2:2 region and it's located on the chromosomal end, it's not internal:
+            if(pos==1 | pos==rev(unique(CO_summary$type))[1]){
+                internal <- FALSE
+            } else {
+                internal <- TRUE
+            }
+
+            # If this non 2:2 region is located on the end of the chromosome, call it a GC_tel:
+            if(!internal){                        
+                type <- "GC_tel"
+            }
+            # Is this non 2:2 region located internally?
+            if(internal){
+                # First determine if there are 2:2 regions immediately flanking this region.
+                if(CO_summary$GCbias[res_range[1]+1]==0 & CO_summary$GCbias[res_range[2]+1]==0){
+                        # If so, call either a NCO if flanking regions are identical or a GCwCO if 
+                        # the flanking regions are not identical.
+                        if(as.character(CO_summary$text[res_range[1]+1]) != as.character(CO_summary$text[res_range[2]+1])){
+                            type <- "NCO"
+                        } else {
+                            type <- "GCwCO"
+                        }
+
+                }
+
+                # Second, if this internal region isn't flanked by two 2:2 regions, then
+                # call it a GC_unassigned to be called later. 
+                if(CO_summary$GCbias[res_range[1]+1]!=0 | CO_summary$GCbias[res_range[2]+1]!=0){
+                    type <- "GC_unassigned"
+                }
+
+            }    
+
+            # Last, return the ancestry bias
+            BIAS <- CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'GCbias'][1]
+
+        }
+
+        system(paste('echo', paste(chr, type, res_range[1],res_range[2], extent,BIAS,sep=","), paste('>>./res_', chr, '.txt',sep=""), sep=" "))
+        # return(data.frame(type=type, res_range1=res_range[1], res_range2=res_range[2], extent=extent, BIAS=BIAS))
+        
+    })
+
+}
+
 
 
 
