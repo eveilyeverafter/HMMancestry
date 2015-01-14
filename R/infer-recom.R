@@ -2,11 +2,11 @@
 #' 
 #' @description Infers different types of tracks (crossover, non-crossover, and gene conversion) along a chromosome given genotyped yeast tetrads or simulated data
 #' 
-#' @param tetrad_states a \code{states.matrix} object inherited from either \code{XXX} or \code{YYY} 
+#' @param data a \code{states.matrix} or \code{forward.backward} object inherited from either \code{recombine_to_tetrad_states()} or \code{estimate_anc_fwd_back} 
 #' 
 #' @param tetrad (Optional) A numeric or character specifying the tetrad ID
 #' 
-#' @param chr (Optional) A numeric or character specifying the chromosome ID
+#' @param chr (Optional) A numeric or character specifying the chromosome ID if class \code{tetrad.states}. If \code{data} is of class \code{forward.backward} than \code{chr} will be provided.
 #' 
 #' @details (to do)
 #' 
@@ -54,67 +54,51 @@ p <- make_parents(l) # make the parent
 recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0) # recombine parents
 states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
 
-# add a couple of gene conversion events
-states[1:10,'three'] <- 1 # GC_tel
-states[1:4,'two'] <- 1 # GC_internal
-states[847:855,'three'] <- 1 # COyesGC
-states[944:971,'one'] <- 0 # NCO
+# # add a couple of gene conversion events
+# states[1:10,'three'] <- 1 # GC_tel
+# states[1:4,'two'] <- 1 # GC_internal
+# states[847:855,'three'] <- 1 # COyesGC
+# states[944:971,'one'] <- 0 # NCO
 
-infer_tracks(tetrad_states=states, tetrad=1, chr="I")
+infer_tracks(data=states, tetrad=1, chr="I")
 
 # Simulated example 2, using the fb algorithm on 1x sequencing coverage
 set.seed(1234567) # For reproducability
-l <- 1000 # number of loci to simulate
-rec <- 0.01 # recombination rate between each snp
-r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p <- make_parents(l) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0) # recombine parents
-sim_reads <- simulate_coverage(a=recomb_sim, p_assign=p_a, coverage=1) # simulate sequencing coverage
+l2 <- 1000 # number of loci to simulate
+rec2 <- 0.01 # recombination rate between each snp
+r2 <- recombine_index(rep(rec2, l-1)) # recombination rate between each snp (vector form)
+p_a2 <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+p2 <- make_parents(l2) # make the parent
+recomb_sim2 <- recombine(parents=p2, r.index=r2, mu.rate=0) # recombine parents
+sim_reads2 <- simulate_coverage(a=recomb_sim2, p_assign=p_a2, coverage=200) # simulate sequencing coverage
 
 
 # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry
 fbres <- lapply(c(1:4), function(x,...){
-    out <- estimate_anc_fwd_back(snp_dat=sim_reads, spore_number=x, 
-    chr_name="I", p_assign=p_a, p_trans=rec)
+    out <- estimate_anc_fwd_back(snp_dat=sim_reads2, spore_number=x, 
+    chr_name="test", p_assign=p_a2, p_trans=rec2)
     return(out)
     })
 
-
-
-
-# # Convert to matrix and add snp names:
-# tetrad_states <- cbind(fbres[[1]]$snp_locations, matrix(unlist(state_res), ncol=4, byrow=FALSE))
-# colnames(tetrad_states) <- c("snp", "one", "two", "three", "four")
-# # Remove states with ambiguous calls (i.e., PP=0.5): 
-# states <- tetrad_states[complete.cases(tetrad_states),]
-# ~~~~~~~~~~~~~~~~~~~
-
-
-
-
-
+infer_tracks(data=fbres, tetrad=1)
 
 # Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-infer_tracks <- function(tetrad_states=NULL, forward_backward_data=NULL, tetrad=1, chr="I"){
-    # Two datasets are allowed to pass through this function.
+infer_tracks <- function(data, tetrad=1, chr="I"){
+    # data can be an object of two classes.
     # 1) of class "tetrad.states" generally inherited from the recombine_to_tetrad_states function OR
-    # 2) a list of four elements, each of class forward.backward that is a result of the estimate_anc_fwd_back function.
-FIX THIS BLOCK   
-    if(tetrad_states!=NULL){
-        if(!inherits(tetrad_states, "tetrad.states")){
-            stop(paste("Object 'tetrad_states' needs to be of class 'data.frame'.", sep=""))
-        }
+    # 2) a list of four elements, each of class forward.backward that is a result of the estimate_anc_fwd_back function. 
+    if(!check_class(data)){
+            stop(paste("Object 'data' needs to be of class tetrad.states or forward.backward", sep=""))
     }
 
-     if(forward_backward_data!=NULL){
-        if(!inherits(tetrad_states, "forward.backward")){
-            stop(paste("Object 'forward_backward_data' needs to be of class 'forward.backward'.", sep=""))
-        }
+    # Convert from class foward.backward to tetrad.states, if needed:
+    if(!inherits(data, "tetrad.states")){
+        tetrad_states <- fb_2_tetrad_states(data)
+        chr <- fbres[[1]]$chr_name
+    } else {
+        tetrad_states <- data
     }
-FIX THAT BLOCK   
 
     # Get the unique candidate 'regions':
     regions <- unique_regions(tetrad_states)
@@ -215,6 +199,23 @@ recombine_to_tetrad_states <- function(tetrad_data){
 
 }
 
+# Internal function that converts forward.backward class to tetrad.states class
+fb_2_tetrad_states <- function(data){
+    res <- FALSE
+    if(length(data)==4 & inherits(data, "list")){
+        if(inherits(data[[1]], "forward.backward") & inherits(data[[2]], "forward.backward") & inherits(data[[4]], "forward.backward") & inherits(data[[4]], "forward.backward") ){
+            res <- TRUE
+        }
+    }
+    if(!res){
+        stop("Object data needs to be of class forward.backward.")
+    }
+        out <- data.frame(snp=data[[1]]$snp_locations, one=data[[1]]$states_inferred,
+            two=data[[2]]$states_inferred,three=data[[3]]$states_inferred,four=data[[4]]$states_inferred)
+        class(out) <- c("data.frame", "tetrad.states")
+        return(out)        
+    }
+
 # Simple function to check if there is a tie in a max arguement
 # Returns 1 if true and 0 if false (no tie)
 check_tie <- function(x){
@@ -234,14 +235,14 @@ check_tie <- function(x){
 
 
 # Estimate crossover and gene conversion events
-unique_regions <- function(tetrad_states){
-    if(!inherits(tetrad_states, "data.frame")){
-        stop(paste("Object 'tetrad_states' needs to be of class 'data.frame'.", sep=""))
+unique_regions <- function(data){
+    if(!check_class(data)){
+            stop(paste("Object 'data' needs to be of class tetrad.states or forward.backward", sep=""))
     }
 
     # Initialize values
-    sums <- apply(tetrad_states[,2:5],1,sum)
-    text <- apply(tetrad_states[,2:5],1,function(x){paste(x[1],x[2],x[3],x[4],sep="_")})
+    sums <- apply(data[,2:5],1,sum)
+    text <- apply(data[,2:5],1,function(x){paste(x[1],x[2],x[3],x[4],sep="_")})
     type <- numeric(length(sums))
     GC_count <- 0
     CO_count <- 0
@@ -284,7 +285,7 @@ unique_regions <- function(tetrad_states){
         }
     }
 
-    out <- list(tetrad_states=tetrad_states, type=type)
+    out <- list(tetrad_states=data, type=type)
     class(out) <- c("list", "unique.regions")
     return(out)
 }
@@ -300,12 +301,15 @@ check_GC_bias <- function(tetrad_states){
 
 
 # This internal function returns the actual segregation pattern:
-get_text <- function(tetrad_states){
-    if(!inherits(tetrad_states, "data.frame")){
-        stop(paste("Object 'tetrad_states' needs to be of class 'data.frame'.", sep=""))
+get_text <- function(i){
+    if(!check_class(i)){
+            stop(paste("Object 'data' needs to be of class tetrad.states or forward.backward", sep=""))
     }
-
-    return(paste(tetrad_states[,'one'],tetrad_states[,'two'],tetrad_states[,'three'], tetrad_states[,'four'], sep="_"))
+    if(inherits(i, "tetrad.states")){
+        return(paste(i[,'one'],i[,'two'],i[,'three'], i[,'four'], sep="_"))
+        } else {
+        return(paste(i[[1]]$states_inferred, i[[2]]$states_inferred, i[[3]]$states_inferred, i[[4]]$states_inferred,sep="_"))
+    }
 }
 
 # Infer additional tracks.
@@ -344,6 +348,19 @@ infer_COnoGC_tracks <- function(inferred_tracks){
 }
 
 
+# Checks if object i is of class tetrad.states or a list of 4 elements, each of class forward.backward
+check_class <- function(i){
+    res <- FALSE
+    if(inherits(i, "tetrad.states")){
+        res <- TRUE
+    }
+    if(length(i)==4 & inherits(i, "list")){
+        if(inherits(i[[1]], "forward.backward") & inherits(i[[2]], "forward.backward") & inherits(i[[4]], "forward.backward") & inherits(i[[4]], "forward.backward") ){
+            res <- TRUE
+        }
+    }
+    return(res)
+}
 
 
 
