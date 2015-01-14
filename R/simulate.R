@@ -24,7 +24,7 @@ make_parents <- function(L){
 	p1 <- rep(0, L)
 	p2 <- rep(1, L)
 
-	out <- list(p1=p1, p2=p2)
+	out <- list(snps=1:L, p1=p1, p2=p2)
 	class(out) <- c("list", "parent.genomes")
 	return(out)
 
@@ -145,6 +145,7 @@ simulate_coverage <- function(a, p_assign, coverage){
 		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
 
 	})
+	out[['snps']] <- a$parents$snps
 
 	class(out) <- c("list", "snp.recom")
 	return(out)

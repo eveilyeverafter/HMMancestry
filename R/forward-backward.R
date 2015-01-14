@@ -17,13 +17,14 @@ check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p_as
 
 }
 
-estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans){
+estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, p_assign, p_trans){
+
+    snp_locations <- snp_dat$snps
 
     check_est_input(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans)
     # 
     displace <- snp_locations[-c(1)]-snp_locations[1:(length(snp_locations)-1)]
       
-    # n <- snp_locations
     n_snps <- length(snp_locations)
 
     # 1) establish matrices/vectors:
@@ -82,10 +83,25 @@ estimate_anc_fwd_back <- function(snp_dat, spore_number, chr_name, snp_locations
     # 7) total likelihood:
     lnL = sum(log(scale))
 
+    # 8) Call states 0 or 1 based on the posterior probs.
+    states_inferred <- apply(posterior, 1, function(i){
+        if(NaN %in% i){
+            warning("Something might not be right. NaNs are present in data.")
+        }
+        if(check_tie(i)==0){
+            return(which(i==max(i))-1)
+        }
+        if(check_tie(i)==1){
+            return(NA)
+        }
+      })
+
+
+
     out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name, 
              snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans,
              emissions=emissions, forward=forward, backward=backward, scale=scale, 
-             posterior=posterior, lnL=lnL)
+             posterior=posterior, states_inferred=states_inferred, lnL=lnL)
 
     class(out) <- c("list", "forward.backward")
     return(out)
