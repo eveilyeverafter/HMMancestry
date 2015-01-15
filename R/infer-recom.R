@@ -66,19 +66,18 @@ infer_tracks(data=states, tetrad=1, chr="I")
 set.seed(1234567) # For reproducability
 l2 <- 1000 # number of loci to simulate
 rec2 <- 0.01 # recombination rate between each snp
-r2 <- recombine_index(rep(rec2, l-1)) # recombination rate between each snp (vector form)
+r2 <- recombine_index(rep(rec2, l2-1)) # recombination rate between each snp (vector form)
 p_a2 <- .999 # probability of correct sequencing assignment (1-sequence error rate)
 p2 <- make_parents(l2) # make the parent
 recomb_sim2 <- recombine(parents=p2, r.index=r2, mu.rate=0) # recombine parents
-sim_reads2 <- simulate_coverage(a=recomb_sim2, p_assign=p_a2, coverage=200) # simulate sequencing coverage
+sim_reads2 <- simulate_coverage(a=recomb_sim2, p_assign=p_a2, coverage=20) # simulate sequencing coverage
 
 
 # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry
-fbres <- lapply(c(1:4), function(x,...){
-    out <- estimate_anc_fwd_back(snp_dat=sim_reads2, spore_number=x, 
-    chr_name="test", p_assign=p_a2, p_trans=rec2)
-    return(out)
-    })
+# fbres <- lapply(c(1:4), function(x,...){
+fbres <- estimate_anc_fwd_back(snp_dat=sim_reads2, chr_name="I", p_assign=p_a2, p_trans=rec2)
+    # return(out)
+    # })
 
 infer_tracks(data=fbres, tetrad=1)
 
@@ -202,10 +201,8 @@ recombine_to_tetrad_states <- function(tetrad_data){
 # Internal function that converts forward.backward class to tetrad.states class
 fb_2_tetrad_states <- function(data){
     res <- FALSE
-    if(length(data)==4 & inherits(data, "list")){
-        if(inherits(data[[1]], "forward.backward") & inherits(data[[2]], "forward.backward") & inherits(data[[4]], "forward.backward") & inherits(data[[4]], "forward.backward") ){
-            res <- TRUE
-        }
+    if(inherits(data, "forward.backward")){
+        res <- TRUE
     }
     if(!res){
         stop("Object data needs to be of class forward.backward.")
@@ -351,13 +348,8 @@ infer_COnoGC_tracks <- function(inferred_tracks){
 # Checks if object i is of class tetrad.states or a list of 4 elements, each of class forward.backward
 check_class <- function(i){
     res <- FALSE
-    if(inherits(i, "tetrad.states")){
+    if(inherits(i, "tetrad.states") | inherits(i, "forward.backward")){
         res <- TRUE
-    }
-    if(length(i)==4 & inherits(i, "list")){
-        if(inherits(i[[1]], "forward.backward") & inherits(i[[2]], "forward.backward") & inherits(i[[4]], "forward.backward") & inherits(i[[4]], "forward.backward") ){
-            res <- TRUE
-        }
     }
     return(res)
 }
