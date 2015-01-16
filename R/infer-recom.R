@@ -12,32 +12,32 @@
 #' 
 #' @return A data.frame containing the following columns:
 #' \describe{
-#'     \item{tetrad}{The tetrad ID (default == 1)}
-#'     \item{chr}{The chromosome ID (default == "I")}
-#'     \item{type}{The type of inferred tract:
-#'         \describe{
-#'             \item{2_2}{a tract with a 2:2 ratio}
-#'             \item{GC_tel}{a gene conversion tract located at a chromosomal end}
-#'             \item{GC_internal}{a gene conversion tract with at least one flanking tract also a gene conversion tract}
-#'             \item{COnoGC}{indicates where a crossover event occurred but without a detectable gene conversion tract}
-#'             \item{COyesGC}{a gene conversion tract associated with a crossover event}
-#'             \item{NCO}{a gene conversion tract without an associated crossover event}
-#'             }}
-#'     \item{start_snp}{numeric value of the first snp in a given tract}
-#'     \item{end_snp}{numeric value of the last snp in a given tract}
-#'     \item{extent}{numeric value of the range of snps (inclusive) in a given tract}
-#'     \item{bias}{integer specifying the gene conversion bias where:
-#'         \describe{
-#'         \item{0}{a 4:0 segregation (all of parent 0 type)
-#'         \item{1}{a 3:1 segregation
-#'         \item{2}{a 2:2 no bias found
-#'         \item{3}{a 1:3 segregation
-#'         \item{4}{a 0:4 segregation (all of parent 1 type)
-#'         \item{NA}{(COnoGC only) bias information is not applicable}    
-#'         }}
+#'      \item{tetrad}{The tetrad ID (default == 1)}
+#'      \item{chr}{The chromosome ID (default == "I")}
+#'      \item{type}{The type of inferred tract:} 
+#'      \describe{
+#'          \item{1. 2_2}{a tract with a 2:2 ratio}
+#'          \item{2. GC_tel}{a gene conversion tract located at a chromosomal end}
+#'          \item{3. GC_internal}{a gene conversion tract with at least one flanking tract also a gene conversion tract}
+#'          \item{4. COnoGC}{indicates where a crossover event occurred but without a detectable gene conversion tract}
+#'          \item{5. COyesGC}{a gene conversion tract associated with a crossover event}
+#'          \item{6. NCO}{a gene conversion tract without an associated crossover event}
+#'      }
+#'      \item{start_snp}{numeric value of the first snp in a given tract}
+#'      \item{end_snp}{numeric value of the last snp in a given tract}
+#'      \item{extent}{numeric value of the range of snps (inclusive) in a given tract}
+#'      \item{bias}{integer specifying the gene conversion bias where:}
+#'      \describe{
+#'          \item{a. 0}{a 4:0 segregation (all of parent 0 type)}
+#'          \item{b. 1}{a 3:1 segregation}
+#'          \item{c. 2}{a 2:2 no bias found}
+#'          \item{d. 3}{a 1:3 segregation}
+#'          \item{e. 4}{a 0:4 segregation (all of parent 1 type)}
+#'          \item{f. NA}{(COnoGC only) bias information is not applicable}  
+#'      } 
 #' }
 #' 
-#' @seealso \code{recombine_index}, \code{recombine}, \code{recombine_to_tetrad_states}
+#' @seealso \code{\link{recombine_index}}, \code{\link{recombine}}, \code{\link{recombine_to_tetrad_states}}
 #' 
 #' @author Tyler D. Hether
 #' 
@@ -45,33 +45,31 @@
 #' 
 #' @examples
 # Simulated example 1
-set.seed(1234567) # For reproducability
-l <- 1000 # number of loci to simulate
-rec <- 0.01 # recombination rate between each snp
-r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p <- make_parents(l) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-states
-
-infer_tracts(data=states, tetrad=1, chr="I")
-
-
-# This is also an example of the estimate_anc_fwd_back() function.
-# Simulated example 2, using the fb algorithm on 1x sequencing coverage
-set.seed(1234567) # For reproducability
-l <- 1000 # number of loci to simulate
-rec <- 0.01 # recombination rate between each snp
-r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p <- make_parents(l) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-sim_reads <- simulate_coverage(a=recomb_sim, p_assign=p_a, coverage=1) # simulate sequencing coverage
-# Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
-fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p_assign=p_a, p_trans=rec)
-fb_2_tetrad_states(fbres)
-infer_tracts(data=fbres, tetrad=1)
+#' set.seed(1234567) # For reproducability
+#' l <- 1000 # number of loci to simulate
+#' rec <- 0.01 # recombination rate between each snp
+#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+#' p <- make_parents(l) # make the parent
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+#' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
+#' states
+#' 
+#' infer_tracts(data=states, tetrad=1, chr="I")
+#' # This is also an example of the estimate_anc_fwd_back() function.
+#' # Simulated example 2, using the fb algorithm on 1x sequencing coverage
+#' set.seed(1234567) # For reproducability
+#' l <- 1000 # number of loci to simulate
+#' rec <- 0.01 # recombination rate between each snp
+#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+#' p <- make_parents(l) # make the parent
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+#' sim_reads <- simulate_coverage(a=recomb_sim, p_assign=p_a, coverage=1) # simulate sequencing coverage
+#' # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
+#' fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p_assign=p_a, p_trans=rec)
+#' fb_2_tetrad_states(fbres)
+#' infer_tracts(data=fbres, tetrad=1)
 
 
 

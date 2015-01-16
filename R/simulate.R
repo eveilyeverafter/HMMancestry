@@ -45,13 +45,14 @@ make_parents <- function(L){
 
 #' @title Simulate recombination points along a chromosome.
 #' 
-#' @description Simulate recombination events given the vector transistion probs and the number of loci
+#' @description Simulate recombination events given the vector transistion 
+#' probs and the number of loci.
 #' 
-#' @param p.trans a vector of length \code{L-1} specifying the recombination rate between two snps. Each element in \code{p.trans} must >= 0 (no recombination) and <= 0.5 (independent assortment).
+#' @param p.trans a vector of length \code{L-1} specifying the recombination 
+#' rate between two snps. Each element in \code{p.trans} must >= 0 (no recombination) 
+#' and <= 0.5 (independent assortment).
 #' 
 #' @return a vector of length \code{L-1} specifying the location of recombiantion points (i.e., between snps).
-#' 
-#' @references none.
 #' 
 #' @seealso \code{\link{make_parents}}, \code{\link{fitEcm}}
 #' 
@@ -83,7 +84,8 @@ recombine_index <- function(p.trans){
 
 #' @title Simulate recombination
 #' 
-#' @description This function simulates recombination between two parent genomes of class \code{parent.genomes}.
+#' @description This function simulates recombination between two parent genomes of class
+#' \code{parent.genomes}.
 #' 
 #' @param parents an object of class \code{parent.genomes} specifying the parental genotypes at each simulated snp.
 #' 
@@ -185,25 +187,23 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 	return(out)	
 }
 
-@title Simulate sequencing of x coverage across simulated data:
+# @title Simulate sequencing of x coverage across simulated data:
 
-@description 
+# @description 
 
-@param 
+# @param 
 
-@return 
+# @return 
 
-@references 
+# @references 
 
-@seealso \code{\link{fitTirm}}, \code{\link{fitEcm}}
+# @seealso \code{\link{fitTirm}}, \code{\link{fitEcm}}
 
-@author Matthew W. Pennell
+# @author Matthew W. Pennell
 
-@export buildClassTable
+# @export buildClassTable
 
-@examples
-
-
+# @examples
 
 simulate_coverage <- function(a, p_assign, coverage){
 	if(!inherits(a, "recombine")){

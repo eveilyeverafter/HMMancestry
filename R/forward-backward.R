@@ -1,12 +1,11 @@
-#' Fits forward and backward algorithm
-#'
-#'
+
+
 
 # Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
 
     # Run this entire block of code for each of the four spores:
-    all_spores <- lapply(1:4, function(x, ...){
+    all_spores <- lapply(1:4, function(x, snp_dat=snp_dat, chr_name=chr_name, p_assign=p_assign, p_trans=p_trans){
         spore_number <- x
   
         snp_locations <- snp_dat$snps
