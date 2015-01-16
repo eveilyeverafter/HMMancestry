@@ -2,21 +2,7 @@
 #'
 #'
 
-check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans, ...){
-
-    if (!inherits(snp_dat, "snp.recom"))
-        stop("Object must be of class 'snp.recom'. See 'make_snp_data()'")
-    check_values(p_assign, 0, 1)
-    check_values(p_trans, 0, 1)
-    if(length(snp_dat[[1]]$p0.assign)!=length(unique(snp_locations))){
-        stop("Each snp needs 1 unique numeric id.")
-    }
-    if(!spore_number %in% c(1:4)){
-        stop("spore_number must be an the integer 1, 2, 3, or 4")
-    }
-
-}
-
+# Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
 
     # Run this entire block of code for each of the four spores:
@@ -87,20 +73,17 @@ estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
         # 7) total likelihood:
         lnL = sum(log(scale))
 
-        # 8) Call states 0 or 1 based on the posterior probs.
+        # 8) Call states 0 or 1 based on the posterior probs. If it's a tie, pick one at random:
         states_inferred <- apply(posterior, 1, function(i){
-            if(NaN %in% i){
-                warning("Something might not be right. NaNs are present in data.")
-            }
             if(check_tie(i)==0){
                 return(which(i==max(i))-1)
             }
-            if(check_tie(i)==1){
-                return(NA)
+            if(check_tie(i)==1 | NaN %in% i){
+                # The first is typically true for low coverage data and address bug #6.
+                # The second typically occurs with high coverage data and addresses bug #4.
+                return(sample(c(0,1), 1, prob=c(0.5,0.5)))
             }
-          })
-
-
+        })
 
         out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name, 
                  snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans,
@@ -114,6 +97,22 @@ estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
     return(all_spores)
 }
 
+# Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans, ...){
+
+    if (!inherits(snp_dat, "snp.recom"))
+        stop("Object must be of class 'snp.recom'. See 'make_snp_data()'")
+    check_values(p_assign, 0, 1)
+    check_values(p_trans, 0, 1)
+    if(length(snp_dat[[1]]$p0.assign)!=length(unique(snp_locations))){
+        stop("Each snp needs 1 unique numeric id.")
+    }
+    if(!spore_number %in% c(1:4)){
+        stop("spore_number must be an the integer 1, 2, 3, or 4")
+    }
+
+}
 
 
 #' @method print fwd.back

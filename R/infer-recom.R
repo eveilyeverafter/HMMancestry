@@ -51,38 +51,32 @@ rec <- 0.01 # recombination rate between each snp
 r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
 p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
 p <- make_parents(l) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0) # recombine parents
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
 states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-
-# # add a couple of gene conversion events
-# states[1:10,'three'] <- 1 # GC_tel
-# states[1:4,'two'] <- 1 # GC_internal
-# states[847:855,'three'] <- 1 # COyesGC
-# states[944:971,'one'] <- 0 # NCO
+states
 
 infer_tracks(data=states, tetrad=1, chr="I")
 
+
+# This is also an example of the estimate_anc_fwd_back() function.
 # Simulated example 2, using the fb algorithm on 1x sequencing coverage
 set.seed(1234567) # For reproducability
-l2 <- 1000 # number of loci to simulate
-rec2 <- 0.01 # recombination rate between each snp
-r2 <- recombine_index(rep(rec2, l2-1)) # recombination rate between each snp (vector form)
-p_a2 <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p2 <- make_parents(l2) # make the parent
-recomb_sim2 <- recombine(parents=p2, r.index=r2, mu.rate=0) # recombine parents
-sim_reads2 <- simulate_coverage(a=recomb_sim2, p_assign=p_a2, coverage=20) # simulate sequencing coverage
-
-
-# Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry
-# fbres <- lapply(c(1:4), function(x,...){
-fbres <- estimate_anc_fwd_back(snp_dat=sim_reads2, chr_name="I", p_assign=p_a2, p_trans=rec2)
-    # return(out)
-    # })
-
+l <- 1000 # number of loci to simulate
+rec <- 0.01 # recombination rate between each snp
+r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+p <- make_parents(l) # make the parent
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+sim_reads <- simulate_coverage(a=recomb_sim, p_assign=p_a, coverage=1) # simulate sequencing coverage
+# Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
+fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p_assign=p_a, p_trans=rec)
+fb_2_tetrad_states(fbres)
 infer_tracks(data=fbres, tetrad=1)
 
-# Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+
+# Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 infer_tracks <- function(data, tetrad=1, chr="I"){
     # data can be an object of two classes.
     # 1) of class "tetrad.states" generally inherited from the recombine_to_tetrad_states function OR
@@ -113,6 +107,7 @@ infer_tracks <- function(data, tetrad=1, chr="I"){
 
     # Go through the chromosome and call each region as a specific 'track':
     out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
+        # print(res)
         type="NULL"
         BIAS="NULL"
         # print(res)
@@ -142,11 +137,14 @@ infer_tracks <- function(data, tetrad=1, chr="I"){
             }
             # Is this non 2:2 region located internally?
             if(internal){
-                # First determine if there are 2:2 regions immediately flanking this region.
-                if(CO_summary$GCbias[res_range[1]-1]==2 & CO_summary$GCbias[res_range[2]+1]==2){
+                # First, identify the snps that flank left and right of res 
+                left <- get_flanking(res_range=res_range, direction="left", df=CO_summary)
+                right <- get_flanking(res_range=res_range, direction="right", df=CO_summary)                
+                # Second determine if there are 2:2 regions immediately flanking this region.
+                if(left$GCbias==2 & right$GCbias==2){
                         # If so, call either a NCO if flanking regions are identical or a GCwCO if 
                         # the flanking regions are not identical.
-                        if(as.character(CO_summary$text[res_range[1]-1]) == as.character(CO_summary$text[res_range[2]+1])){
+                        if(as.character(left$text) == as.character(right$text)){
                             type <- "NCO"
                         } else {
                             type <- "COyesGC"
@@ -154,9 +152,9 @@ infer_tracks <- function(data, tetrad=1, chr="I"){
 
                 }
 
-                # Second, if this internal region isn't flanked by two 2:2 regions, then
+                # Third, if this internal region isn't flanked by two 2:2 regions, then
                 # call it a GC_internal to be called later. 
-                if(CO_summary$GCbias[res_range[1]-1]!=2 | CO_summary$GCbias[res_range[2]+1]!=2){
+                if(left$GCbias!=2 | right$GCbias!=2){
                     type <- "GC_internal"
                 }
 
@@ -180,10 +178,17 @@ infer_tracks <- function(data, tetrad=1, chr="I"){
     return(out2)
 }
 
-
-
-
 # Minor function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# If direction is left (right), return the snp data of the unique region immediately to the left (right) of the focal region.
+get_flanking <- function(res_range, direction, df){
+    if(direction=="left"){
+        return(df[which(df$snp==res_range[1]-1),])
+    }
+    if(direction=="right"){
+        return(df[which(df$snp==res_range[2]+1),])
+    }
+}
 
 # A function for converting recombine object to tetrad.states
 recombine_to_tetrad_states <- function(tetrad_data){
@@ -320,9 +325,9 @@ infer_COnoGC_tracks <- function(inferred_tracks){
     chr <- inferred_tracks$chr[1]
 
     # Call COnoGCs if present:
-    COnoGCs <- lapply(1:(dim(inferred_tracks)[1]-1), function(i, ...){
+    COnoGCs <- lapply(1:max(1,(dim(inferred_tracks)[1]-1)), function(i, ...){
             # Check to see if the i-th row is a 2:2 track
-            if(inferred_tracks[i,'type']=="2_2"){
+            if(inferred_tracks[i,'type']=="2_2" & dim(inferred_tracks)[1] >= (i+1)){
                 # If so, check to see if the i+1 row is also a 2:2 ratio
                 if(inferred_tracks[(i+1),'type']=="2_2"){
                     # If so, return a COnoGC entry
@@ -343,7 +348,6 @@ infer_COnoGC_tracks <- function(inferred_tracks){
     return(out2)
 
 }
-
 
 # Checks if object i is of class tetrad.states or a list of 4 elements, each of class forward.backward
 check_class <- function(i){
