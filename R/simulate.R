@@ -1,10 +1,23 @@
-#' Function for simulating recombination 
-#'
-#' @param p_trans A vector of length L-1 specifying the recombination rate between each SNP position
-#' @param L a vector of length 1 specifying the number of SNPs to simulate
-#' @param convert A vector specifying which snps are under gene conversion
-#' @param convert_rate A vector of length 1 specifying the gene conversion rate
-
+#' @title Simulate haploid parental genotypes along a chromosome
+#' 
+#' @description This function creates divergent genotypes between two parents. The first parent's genotypes are denoted by a vector of zeros of length \code{L} while the second parent's genotypes are a vector of ones.
+#' 
+#' @param L is an integer specifying the number of loci to simulate. L must be greater than 1. 
+#' 
+#' @return an object of class \code{parent.genomes} giving the parental snp calls at each of the \code{L} loci. 
+#' 
+#' @references none.
+#' 
+#' @seealso \code{\link{recombine_index}}, \code{\link{recobmine}}
+#' 
+#' @author Tyler D. Hether
+#' 
+#' @export make_parents
+#' 
+#' @examples
+#' 
+#' # Make a chromosome of L=50 loci for each parent.
+#' make_parents(L=50)
 
 make_parents <- function(L){
 	if(length(L)!=1){
@@ -30,6 +43,205 @@ make_parents <- function(L){
 
 }
 
+#' @title Simulate recombination points along a chromosome.
+#' 
+#' @description Simulate recombination events given the vector transistion probs and the number of loci
+#' 
+#' @param p.trans a vector of length \code{L-1} specifying the recombination rate between two snps. Each element in \code{p.trans} must >= 0 (no recombination) and <= 0.5 (independent assortment).
+#' 
+#' @return a vector of length \code{L-1} specifying the location of recombiantion points (i.e., between snps).
+#' 
+#' @references none.
+#' 
+#' @seealso \code{\link{make_parents}}, \code{\link{fitEcm}}
+#' 
+#' @author Tyler D. Hether
+#' 
+#' @export recombine_index
+#' 
+#' @examples
+#' 
+#' set.seed(1234567)
+#' l <- 50 # number of loci to simulate
+#' rec <- 0.01 # recombination rate between each snp
+#' recombine_index(p.trans=rep(rec, l-1))
+
+recombine_index <- function(p.trans){
+	if(class(p.trans)!="numeric"){
+		stop("The vector 'p.trans' needs to be numeric")
+	}
+
+	check_values(a=p.trans, x=0, y=0.5)
+	
+	# 1==recombination occurs, 0==no recombination
+	out <- sapply(p.trans, function(i) rbinom(n=1, size=1, prob=i)
+
+	)
+	return(out)
+}
+
+
+#' @title Simulate recombination
+#' 
+#' @description This function simulates recombination between two parent genomes of class \code{parent.genomes}.
+#' 
+#' @param parents an object of class \code{parent.genomes} specifying the parental genotypes at each simulated snp.
+#' 
+#' @param r.index a vector of length \code{L-1} specifying whether a recombination is to be simulated (1) or not (0) in between two adjacent snps. 
+#' 
+#' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
+#' 
+#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
+#' 
+#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion during recombination.
+#' 
+#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion tract.
+#' 
+#' @details (to do)
+#' 
+#' @return an object of class \code{recombine} that contains the following data:
+#' \describe{
+#' 	\item{parents}{input data}
+#' 	\item{r.index}{input data}
+#' 	\item{m.rate}{input data}
+#' 	\item{f.cross}{input data}
+#' 	\item{f.convert}{input data}
+#' 	\item{length.conversion}{input data}
+#' 	\item{chromatids.mutated_snps}{a list giving the genotypes of 4 chromatids (two pairs of sister chromatids) following mutation}
+#' 	\item{chromatids.recombined}{a list giving the genotypes of 4 chromatids following recombination}
+#' }
+#' 
+#' @references (to do: refernce a crossover vs non-crossover paper)
+#' 
+#' @seealso \code{\link{parent_genomes}}, \code{\link{recombine_index}}
+#' 
+#' @author Tyler D. Hether
+#' 
+#' @export recombine
+#' 
+#' @examples
+#' set.seed(1234567) # For reproducability
+#' l <- 50 # number of loci to simulate
+#' rec <- 0.02 # recombination rate between each snp
+#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+#' p <- make_parents(l) # make the parent
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+#' recomb_sim
+
+recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
+	if(!inherits(parents, "parent.genomes")){
+		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
+	}
+	l <- length(parents$p1)
+
+	# S-phase and mutation
+	chromatids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
+	chromatids.mutated_snps <- lapply(chromatids.orig, function(i, ...){
+		mutate_snps(i, mu=mu.rate)
+		})
+	
+	# Recombine chromatids:
+	chromatids.recombined <- chromatids.mutated_snps
+	for(i in 1:(l-1)){
+		# Cases where there is a recombination event, pick
+		# two of the four chromatids to recombine:
+		if(i %in% which(r.index==1)){
+			picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
+			# Recombine them:
+			chromatids <- data.frame(one=chromatids.recombined[[picked.chromatids[1]]], 
+					   two=chromatids.recombined[[picked.chromatids[2]]])
+			one <- chromatids[(i+1):l,1]
+			two <- chromatids[(i+1):l,2]
+				# Does recombination result in a crossover (1) or non-crossover (0)?
+				to_cross <- cross_vs_noncross(f.cross=f.cross)
+				if(to_cross==1){
+					chromatids[(i+1):l,] <- cbind(two, one)
+				}			
+				# Is there gene conversion at this recombination point?
+				if(sample(c(1,0),1,prob=c(f.convert,1-f.convert))==1){
+					# simulate gene conversion on one of the non-picked chromatids:
+					to_convert <- sample(c(1:4)[-picked.chromatids],1) # non-picked chromotid
+					length_of_conversion <- rpois(n=1,lambda=length.conversion)
+					# if the length of the tract extends pass the chromosome then stop at the end of the chromosome.
+					# Otherwise, create a gene conversion tract of length length_of_conversion starting at the 
+					# recombination point. 
+					if( (i+1+length_of_conversion) > l){
+						chromatids.recombined[[to_convert]][c((i+1):l)] <- sapply(chromatids.recombined[[to_convert]][c((i+1):l)], function(j){switch_values(j)})
+					} else {
+						chromatids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))] <- sapply(chromatids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))], function(j){switch_values(j)})
+					}
+
+				}
+			# Save results:
+			chromatids.recombined[[picked.chromatids[1]]] <- chromatids[,1]
+			chromatids.recombined[[picked.chromatids[2]]] <- chromatids[,2]
+		}
+	}
+
+	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, f.cross=f.cross, f.convert=f.convert, length.conversion=length.conversion,
+			chromatids.mutated_snps=chromatids.mutated_snps, chromatids.recombined=chromatids.recombined)
+	class(out) <- c("list", "recombine")
+	return(out)	
+}
+
+@title Simulate sequencing of x coverage across simulated data:
+
+@description 
+
+@param 
+
+@return 
+
+@references 
+
+@seealso \code{\link{fitTirm}}, \code{\link{fitEcm}}
+
+@author Matthew W. Pennell
+
+@export buildClassTable
+
+@examples
+
+
+
+simulate_coverage <- function(a, p_assign, coverage){
+	if(!inherits(a, "recombine")){
+		stop(paste("Object 'a' needs to be of class 'recombine'.", sep=""))
+	}
+
+	simulated.reads.total <- lapply(a$chromatids.recombined, function(i) return(rpois(i, coverage)))
+	
+	# This block returns the number of simulated reads for each parental type, 0 and 1, for each snp position.
+	out <- lapply(1:4, function(i){
+		correct_reads <- rbinom(size=simulated.reads.total[[i]], prob=p_assign, n=simulated.reads.total[[i]])
+		incorrect_reads <- simulated.reads.total[[i]] - correct_reads 
+
+		p0.assign <- sapply(1:length(a$chromatids.recombined[[i]]), function(x){
+				if(a$chromatids.recombined[[i]][x]==0){
+					return(correct_reads[x])
+				}
+				if(a$chromatids.recombined[[i]][x]==1){
+					return(incorrect_reads[x])
+				}
+			})
+		p1.assign <- sapply(1:length(a$chromatids.recombined[[i]]), function(x){
+				if(a$chromatids.recombined[[i]][x]==1){
+					return(correct_reads[x])
+				}
+				if(a$chromatids.recombined[[i]][x]==0){
+					return(incorrect_reads[x])
+				}
+			})
+		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
+
+	})
+	out[['snps']] <- a$parents$snps
+
+	class(out) <- c("list", "snp.recom")
+	return(out)
+}
+
 # Function to make sure values in a vector, a, are between x and y, inclusive:
 check_values <- function(a,x,y){
 	if(max(a)>y){
@@ -38,21 +250,6 @@ check_values <- function(a,x,y){
 	if(min(a)<x){
 		stop(paste("The minimum of 'a' needs to be >", x,sep=""))
 	}
-}
-
-# Simulate recombination events given the vector transistion probs and the number of loci
-recombine_index <- function(p_trans){
-	if(class(p_trans)!="numeric"){
-		stop("The vector 'p_trans' needs to be numeric")
-	}
-
-	check_values(a=p_trans, x=0, y=0.5)
-	
-	# 1==recombination occurs, 0==no recombination
-	out <- sapply(p_trans, function(i) rbinom(n=1, size=1, prob=i)
-
-	)
-	return(out)
 }
 
 # Functions to simulate mutation for a vector of snps
@@ -75,168 +272,7 @@ mutate_snps <- function(xx, mu=mu){
 	return(xx)
 }
 
-
-# f.cross <- 0.5 # frequency of crossovers during recombination
-# f.convert <- 1 # frequency of gene conversion during recombination
-# length.conversion <- 20 # average length of gene conversion track
-# Note: NCO can occur two ways: but crossing over with sister chromotids (which is only noticed when there are
-	# mutations present to differentiate sister chromotids) and the alternate ways in which Holliday Junctions resolve.
-# Note: mutations during simulated meiosis create situations that look like 1 basepair non-crossover events.
-
-# recombine_proposed(parents=p, r.index=r, mu.rate=0, f.cross=0.5, f.convert=1, length.conversion=20)
-recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
-	if(!inherits(parents, "parent.genomes")){
-		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
-	}
-	l <- length(parents$p1)
-
-	# S-phase and mutation
-	chromotids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
-	chromotids.mutated_snps <- lapply(chromotids.orig, function(i, ...){
-		mutate_snps(i, mu=mu.rate)
-		})
-	
-	# Recombine chromotids:
-	chromotids.recombined <- chromotids.mutated_snps
-	for(i in 1:(l-1)){
-		# Cases where there is a recombination event, pick
-		# two of the four chromotids to recombine:
-		if(i %in% which(r.index==1)){
-			picked.chromotids <- sample(c(1:4), 2, replace=FALSE)
-			# Recombine them:
-			chromotids <- data.frame(one=chromotids.recombined[[picked.chromotids[1]]], 
-					   two=chromotids.recombined[[picked.chromotids[2]]])
-			one <- chromotids[(i+1):l,1]
-			two <- chromotids[(i+1):l,2]
-				# Does recombination result in a crossover (1) or non-crossover (0)?
-				to_cross <- cross_vs_noncross(f.cross=f.cross)
-				if(to_cross==1){
-					chromotids[(i+1):l,] <- cbind(two, one)
-				}			
-				# Is there gene conversion at this recombination point?
-				if(sample(c(1,0),1,prob=c(f.convert,1-f.convert))==1){
-					# simulate gene conversion on one of the non-picked chromotids:
-					to_convert <- sample(c(1:4)[-picked.chromotids],1) # non-picked chromotid
-					length_of_conversion <- rpois(n=1,lambda=length.conversion)
-					# if the length of the track extends pass the chromosome then stop at the end of the chromosome.
-					# Otherwise, create a gene conversion track of length length_of_conversion starting at the 
-					# recombination point. 
-					if( (i+1+length_of_conversion) > l){
-						chromotids.recombined[[to_convert]][c((i+1):l)] <- sapply(chromotids.recombined[[to_convert]][c((i+1):l)], function(j){switch_values(j)})
-					} else {
-						chromotids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))] <- sapply(chromotids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))], function(j){switch_values(j)})
-					}
-
-				}
-			# Save results:
-			chromotids.recombined[[picked.chromotids[1]]] <- chromotids[,1]
-			chromotids.recombined[[picked.chromotids[2]]] <- chromotids[,2]
-		}
-	}
-
-	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, 
-			chromotids.mutated_snps=chromotids.mutated_snps, picked.chromotids=picked.chromotids, 
-			chromotids.recombined=chromotids.recombined)
-	class(out) <- c("list", "recombine")
-	return(out)	
-}
-
-
 # Given the frequency of crossover events, f.cross, sample whether one is to occur (1=yes, crossover; 0=no, non-crossover).
 cross_vs_noncross <- function(f.cross){
 	sample(c(1,0), 1, prob=c(f.cross, 1-f.cross))
 }
-
-
-recombine_dep <- function(parents, r.index, mu.rate){
-	if(!inherits(parents, "parent.genomes")){
-		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
-	}
-	l <- length(parents$p1)
-
-	# S-phase and mutation
-	chromotids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
-	chromotids.mutated_snps <- lapply(chromotids.orig, function(i, ...){
-		mutate_snps(i, mu=mu.rate)
-		})
-	
-	# Recombine chromotids:
-	chromotids.recombined <- chromotids.mutated_snps
-	for(i in 1:(l-1)){
-		# Cases where there is a recombination event, pick
-		# two of the four chromotids to recombine:
-		if(i %in% which(r.index==1)){
-			picked.chromotids <- sample(c(1:4), 2, replace=FALSE)
-			# Recombine them:
-			chromotids <- data.frame(one=chromotids.recombined[[picked.chromotids[1]]], 
-					   two=chromotids.recombined[[picked.chromotids[2]]])
-			one <- chromotids[(i+1):l,1]
-			two <- chromotids[(i+1):l,2]
-			chromotids[(i+1):l,] <- cbind(two, one)	
-			# Save results:
-			chromotids.recombined[[picked.chromotids[1]]] <- chromotids[,1]
-			chromotids.recombined[[picked.chromotids[2]]] <- chromotids[,2]
-		}
-	}
-
-	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, 
-			chromotids.mutated_snps=chromotids.mutated_snps, picked.chromotids=picked.chromotids, 
-			chromotids.recombined=chromotids.recombined)
-	class(out) <- c("list", "recombine")
-	return(out)	
-}
-
-# Simulate sequencing of x coverage across simulated data: 
-simulate_coverage <- function(a, p_assign, coverage){
-	if(!inherits(a, "recombine")){
-		stop(paste("Object 'a' needs to be of class 'recombine'.", sep=""))
-	}
-
-	simulated.reads.total <- lapply(a$chromotids.recombined, function(i) return(rpois(i, coverage)))
-	
-	# This block returns the number of simulated reads for each parental type, 0 and 1, for each snp position.
-	out <- lapply(1:4, function(i){
-		correct_reads <- rbinom(size=simulated.reads.total[[i]], prob=p_assign, n=simulated.reads.total[[i]])
-		incorrect_reads <- simulated.reads.total[[i]] - correct_reads 
-
-		p0.assign <- sapply(1:length(a$chromotids.recombined[[i]]), function(x){
-				if(a$chromotids.recombined[[i]][x]==0){
-					return(correct_reads[x])
-				}
-				if(a$chromotids.recombined[[i]][x]==1){
-					return(incorrect_reads[x])
-				}
-			})
-		p1.assign <- sapply(1:length(a$chromotids.recombined[[i]]), function(x){
-				if(a$chromotids.recombined[[i]][x]==1){
-					return(correct_reads[x])
-				}
-				if(a$chromotids.recombined[[i]][x]==0){
-					return(incorrect_reads[x])
-				}
-			})
-		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
-
-	})
-	out[['snps']] <- a$parents$snps
-
-	class(out) <- c("list", "snp.recom")
-	return(out)
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
