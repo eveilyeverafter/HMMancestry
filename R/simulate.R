@@ -75,7 +75,80 @@ mutate_snps <- function(xx, mu=mu){
 	return(xx)
 }
 
-recombine <- function(parents, r.index, mu.rate){
+
+# f.cross <- 0.5 # frequency of crossovers during recombination
+# f.convert <- 1 # frequency of gene conversion during recombination
+# length.conversion <- 20 # average length of gene conversion track
+# Note: NCO can occur two ways: but crossing over with sister chromotids (which is only noticed when there are
+	# mutations present to differentiate sister chromotids) and the alternate ways in which Holliday Junctions resolve.
+# Note: mutations during simulated meiosis create situations that look like 1 basepair non-crossover events.
+
+# recombine_proposed(parents=p, r.index=r, mu.rate=0, f.cross=0.5, f.convert=1, length.conversion=20)
+recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
+	if(!inherits(parents, "parent.genomes")){
+		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
+	}
+	l <- length(parents$p1)
+
+	# S-phase and mutation
+	chromotids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
+	chromotids.mutated_snps <- lapply(chromotids.orig, function(i, ...){
+		mutate_snps(i, mu=mu.rate)
+		})
+	
+	# Recombine chromotids:
+	chromotids.recombined <- chromotids.mutated_snps
+	for(i in 1:(l-1)){
+		# Cases where there is a recombination event, pick
+		# two of the four chromotids to recombine:
+		if(i %in% which(r.index==1)){
+			picked.chromotids <- sample(c(1:4), 2, replace=FALSE)
+			# Recombine them:
+			chromotids <- data.frame(one=chromotids.recombined[[picked.chromotids[1]]], 
+					   two=chromotids.recombined[[picked.chromotids[2]]])
+			one <- chromotids[(i+1):l,1]
+			two <- chromotids[(i+1):l,2]
+				# Does recombination result in a crossover (1) or non-crossover (0)?
+				to_cross <- cross_vs_noncross(f.cross=f.cross)
+				if(to_cross==1){
+					chromotids[(i+1):l,] <- cbind(two, one)
+				}			
+				# Is there gene conversion at this recombination point?
+				if(sample(c(1,0),1,prob=c(f.convert,1-f.convert))==1){
+					# simulate gene conversion on one of the non-picked chromotids:
+					to_convert <- sample(c(1:4)[-picked.chromotids],1) # non-picked chromotid
+					length_of_conversion <- rpois(n=1,lambda=length.conversion)
+					# if the length of the track extends pass the chromosome then stop at the end of the chromosome.
+					# Otherwise, create a gene conversion track of length length_of_conversion starting at the 
+					# recombination point. 
+					if( (i+1+length_of_conversion) > l){
+						chromotids.recombined[[to_convert]][c((i+1):l)] <- sapply(chromotids.recombined[[to_convert]][c((i+1):l)], function(j){switch_values(j)})
+					} else {
+						chromotids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))] <- sapply(chromotids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))], function(j){switch_values(j)})
+					}
+
+				}
+			# Save results:
+			chromotids.recombined[[picked.chromotids[1]]] <- chromotids[,1]
+			chromotids.recombined[[picked.chromotids[2]]] <- chromotids[,2]
+		}
+	}
+
+	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, 
+			chromotids.mutated_snps=chromotids.mutated_snps, picked.chromotids=picked.chromotids, 
+			chromotids.recombined=chromotids.recombined)
+	class(out) <- c("list", "recombine")
+	return(out)	
+}
+
+
+# Given the frequency of crossover events, f.cross, sample whether one is to occur (1=yes, crossover; 0=no, non-crossover).
+cross_vs_noncross <- function(f.cross){
+	sample(c(1,0), 1, prob=c(f.cross, 1-f.cross))
+}
+
+
+recombine_dep <- function(parents, r.index, mu.rate){
 	if(!inherits(parents, "parent.genomes")){
 		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
 	}
@@ -150,6 +223,20 @@ simulate_coverage <- function(a, p_assign, coverage){
 	class(out) <- c("list", "snp.recom")
 	return(out)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
