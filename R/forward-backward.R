@@ -1,16 +1,33 @@
-
+#' @title to do
+#' 
+#' @description to do
+#' 
+#' @param to do
+#' 
+#' @return to do
+#' 
+#' @references to do
+#' 
+#' @seealso to do
+#' 
+#' @author Tyler D. Hether
+#' 
+#' @export estimate_anc_fwd_back
+#' 
+#' @examples
+#' #to do
 
 
 # Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
+estimate_anc_fwd_back <- function(snp_dat, chr_name, p.assign, p_trans){
 
     # Run this entire block of code for each of the four spores:
-    all_spores <- lapply(1:4, function(x, snp_dat=snp_dat, chr_name=chr_name, p_assign=p_assign, p_trans=p_trans){
+    all_spores <- lapply(1:4, function(x, snp_dat=snp_dat, chr_name=chr_name, p.assign=p.assign, p_trans=p_trans){
         spore_number <- x
   
         snp_locations <- snp_dat$snps
 
-        check_est_input(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans)
+        check_est_input(snp_dat, spore_number, chr_name, snp_locations, p.assign, p_trans)
         # 
         displace <- snp_locations[-c(1)]-snp_locations[1:(length(snp_locations)-1)]
           
@@ -28,8 +45,8 @@ estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
         k0 <- snp_dat[[spore_number]]$p0.assign
         k1 <- snp_dat[[spore_number]]$p1.assign
         n_i <- k0+k1
-        p0 <- choose(n_i,k0)*(p_assign^k0)*((1-p_assign)^(n_i-k0))
-        p1 <- choose(n_i,k1)*(p_assign^k1)*((1-p_assign)^(n_i-k1))    
+        p0 <- choose(n_i,k0)*(p.assign^k0)*((1-p.assign)^(n_i-k0))
+        p1 <- choose(n_i,k1)*(p.assign^k1)*((1-p.assign)^(n_i-k1))    
         emissions <- t(rbind(p0, p1))
         #
         # 3) calculate pi[k] (vector of state probabilities at first position -- here use 1/k for each)
@@ -85,7 +102,7 @@ estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
         })
 
         out <- list(snp_dat=snp_dat, spore_number=spore_number, chr_name=chr_name, 
-                 snp_locations=snp_locations, p_assign=p_assign, p_trans=p_trans,
+                 snp_locations=snp_locations, p.assign=p.assign, p_trans=p_trans,
                  emissions=emissions, forward=forward, backward=backward, scale=scale, 
                  posterior=posterior, states_inferred=states_inferred, lnL=lnL)
 
@@ -97,12 +114,11 @@ estimate_anc_fwd_back <- function(snp_dat, chr_name, p_assign, p_trans){
 }
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p_assign, p_trans, ...){
+check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p.assign, p_trans, ...){
 
     if (!inherits(snp_dat, "snp.recom"))
         stop("Object must be of class 'snp.recom'. See 'make_snp_data()'")
-    check_values(p_assign, 0, 1)
+    check_values(p.assign, 0, 1)
     check_values(p_trans, 0, 1)
     if(length(snp_dat[[1]]$p0.assign)!=length(unique(snp_locations))){
         stop("Each snp needs 1 unique numeric id.")
@@ -113,10 +129,9 @@ check_est_input <- function(snp_dat, spore_number, chr_name, snp_locations, p_as
 
 }
 
-
-#' @method print fwd.back
+#' @method print estimate_anc_fwd_back
 #' @export 
-print.fwd.back <- function(x, ...){
+print.estimate_anc_fwd_back <- function(x, ...){
     ## make pretty output format
     ## print to screen
 }

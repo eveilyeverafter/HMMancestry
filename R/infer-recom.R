@@ -1,12 +1,15 @@
 #' @title Identify crossover, non-crossover, and gene conversion tracts
 #' 
-#' @description Infers different types of tracts (crossover, non-crossover, and gene conversion) along a chromosome given genotyped yeast tetrads or simulated data
+#' @description Infers different types of tracts (crossover, non-crossover, and gene conversion) along a 
+#' chromosome given genotyped yeast tetrads or simulated data
 #' 
-#' @param data a \code{states.matrix} or \code{forward.backward} object inherited from either \code{recombine_to_tetrad_states} or \code{estimate_anc_fwd_back} 
+#' @param data a \code{states.matrix} or \code{forward.backward} object inherited from either 
+#' \code{recombine_to_tetrad_states} or \code{estimate_anc_fwd_back} 
 #' 
 #' @param tetrad (Optional) A numeric or character specifying the tetrad ID
 #' 
-#' @param chr (Optional) A numeric or character specifying the chromosome ID if class \code{tetrad.states}. If \code{data} is of class \code{forward.backward} than \code{chr} will be provided.
+#' @param chr (Optional) A numeric or character specifying the chromosome ID if class \code{tetrad.states}. 
+#' If \code{data} is of class \code{forward.backward} than \code{chr} will be provided.
 #' 
 #' @details (to do)
 #' 
@@ -44,7 +47,7 @@
 #' @export infer_tracts
 #' 
 #' @examples
-# Simulated example 1
+#' Simulated example 1
 #' set.seed(1234567) # For reproducability
 #' l <- 1000 # number of loci to simulate
 #' rec <- 0.01 # recombination rate between each snp
@@ -65,16 +68,12 @@
 #' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
 #' p <- make_parents(l) # make the parent
 #' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' sim_reads <- simulate_coverage(a=recomb_sim, p_assign=p_a, coverage=1) # simulate sequencing coverage
+#' sim_reads <- simulate_coverage(a=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
 #' # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
-#' fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p_assign=p_a, p_trans=rec)
+#' fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p.assign=p_a, p_trans=rec)
 #' fb_2_tetrad_states(fbres)
 #' infer_tracts(data=fbres, tetrad=1)
 
-
-
-
-# Main function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 infer_tracts <- function(data, tetrad=1, chr="I"){
     # data can be an object of two classes.
     # 1) of class "tetrad.states" generally inherited from the recombine_to_tetrad_states function OR
@@ -176,9 +175,10 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
     return(out2)
 }
 
-# Minor function ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# If direction is left (right), return the snp data of the unique region immediately to the left (right) of the focal region.
+# If direction is left (right), return the snp data of the unique region 
+#    immediately to the left (right) of the focal region.
 get_flanking <- function(res_range, direction, df){
     if(direction=="left"){
         return(df[which(df$snp==res_range[1]-1),])
@@ -195,7 +195,8 @@ recombine_to_tetrad_states <- function(tetrad_data){
     }
 
     out <- data.frame(snp=tetrad_data$parents$snps, one=tetrad_data$chromatids.recombined$p1_1, 
-        two=tetrad_data$chromatids.recombined$p1_2, three=tetrad_data$chromatids.recombined$p2_1, four=tetrad_data$chromatids.recombined$p2_2)
+        two=tetrad_data$chromatids.recombined$p1_2, three=tetrad_data$chromatids.recombined$p2_1, 
+        four=tetrad_data$chromatids.recombined$p2_2)
     class(out) <- c("data.frame", "tetrad.states")
     return(out)
 
@@ -232,7 +233,6 @@ check_tie <- function(x){
         return(1)
     } 
 }
-
 
 # Estimate crossover and gene conversion events
 unique_regions <- function(data){
@@ -308,7 +308,8 @@ get_text <- function(i){
     if(inherits(i, "tetrad.states")){
         return(paste(i[,'one'],i[,'two'],i[,'three'], i[,'four'], sep="_"))
         } else {
-        return(paste(i[[1]]$states_inferred, i[[2]]$states_inferred, i[[3]]$states_inferred, i[[4]]$states_inferred,sep="_"))
+        return(paste(i[[1]]$states_inferred, i[[2]]$states_inferred, 
+            i[[3]]$states_inferred, i[[4]]$states_inferred,sep="_"))
     }
 }
 
@@ -331,7 +332,8 @@ infer_COnoGC_tracts <- function(inferred_tracts){
                     # If so, return a COnoGC entry
                     res_range <- c(inferred_tracts[i, 'end_snp'],inferred_tracts[(i+1), 'start_snp'])
                     pt <- mean(res_range)
-                    return(data.frame(tetrad=tetrad, chr=chr,type="COnoGC", start_snp=pt, end_snp=pt, extent=res_range[2]-res_range[1], bias=NA))
+                    return(data.frame(tetrad=tetrad, chr=chr,type="COnoGC", start_snp=pt, 
+                        end_snp=pt, extent=res_range[2]-res_range[1], bias=NA))
                 }
             }
 
@@ -347,7 +349,8 @@ infer_COnoGC_tracts <- function(inferred_tracts){
 
 }
 
-# Checks if object i is of class tetrad.states or a list of 4 elements, each of class forward.backward
+# Checks if object i is of class tetrad.states or a list of 4 elements, each of 
+#    class forward.backward
 check_class <- function(i){
     res <- FALSE
     if(inherits(i, "tetrad.states") | inherits(i, "forward.backward")){

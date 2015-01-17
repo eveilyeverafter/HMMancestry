@@ -1,10 +1,11 @@
 Package: hmmspore
 Type: Package
-Title: Estimates population size from non-invasive sampling
-Version: 1.2
-Date: 2014-05-04
-Author: Matthew W. Pennell, Carisa Stansbury, Lisette Waits and Craig R. Miller
-Maintainer: Matthew W. Pennell <mwpennell@gmail.com>
+Title: Estimates recombination crossover, non-crossover, and gene conversion events from yeast or
+	simulated data.
+Version: 1.0
+Date: 2015-01-15
+Author: Tyler D. Hether and Matthew W. Pennell
+Maintainer: Tyler D. Hether <tyler.hether@gmail.com>
 Description: Fits models from Miller et al. 2005 to estimate population
     sizes from natural populations. Several models are implemented.
     Package also includes functions to perform a likelihood ratio
@@ -13,6 +14,6 @@ Description: Fits models from Miller et al. 2005 to estimate population
     simulate data.
 License: GPL (>= 2)
 LazyLoad: yes
-Packaged: 2012-08-16 12:52:27 UTC; mwp
+Packaged: 2015-01-15 10:10:27 UTC; tdh
 Repository: CRAN
 Date/Publication: 2012-08-16 13:47:50

@@ -1,6 +1,7 @@
 #' @title Simulate haploid parental genotypes along a chromosome
 #' 
-#' @description This function creates divergent genotypes between two parents. The first parent's genotypes are denoted by a vector of zeros of length \code{L} while the second parent's genotypes are a vector of ones.
+#' @description This function creates divergent genotypes between two parents. The first parent's genotypes
+#' are denoted by a vector of zeros of length \code{L} while the second parent's genotypes are a vector of ones.
 #' 
 #' @param L is an integer specifying the number of loci to simulate. L must be greater than 1. 
 #' 
@@ -87,17 +88,22 @@ recombine_index <- function(p.trans){
 #' @description This function simulates recombination between two parent genomes of class
 #' \code{parent.genomes}.
 #' 
-#' @param parents an object of class \code{parent.genomes} specifying the parental genotypes at each simulated snp.
+#' @param parents an object of class \code{parent.genomes} specifying the parental genotypes 
+#' at each simulated snp.
 #' 
-#' @param r.index a vector of length \code{L-1} specifying whether a recombination is to be simulated (1) or not (0) in between two adjacent snps. 
+#' @param r.index a vector of length \code{L-1} specifying whether a recombination is to be 
+#' simulated (1) or not (0) in between two adjacent snps. 
 #' 
 #' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
 #' 
-#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
+#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination 
+#' events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
 #' 
-#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion during recombination.
+#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion 
+#' during recombination.
 #' 
-#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion tract.
+#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
+#' tract.
 #' 
 #' @details (to do)
 #' 
@@ -187,60 +193,74 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 	return(out)	
 }
 
-# @title Simulate sequencing of x coverage across simulated data:
+#' @title Simulate sequencing across simulated data:
+#' 
+#' @description This function simulates sequecing across simulated data of class \code{recombine}.
+#' 
+#' @param simdata an object of class \code{recombine}
+#' 
+#' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
+#' correct sequencing assignment.
+#' 
+#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
+#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
+#' 
+#' @return an object of class \code{snp.recom} providing the simulated sequencing reads for each parent.
+#' 
+#' @seealso \code{\link{recombine}}, \code{\link{estimate_anc_fwd_back}}
+#' 
+#' @author Tyler D. Hether 
+#' 
+#' @export simulate_coverage
+#' 
+#' @examples
+#' set.seed(1234567) # For reproducability
+#' l <- 1000 # number of loci to simulate
+#' rec <- 0.01 # recombination rate between each snp
+#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+#' p <- make_parents(l) # make the parent
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+#' sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
 
-# @description 
-
-# @param 
-
-# @return 
-
-# @references 
-
-# @seealso \code{\link{fitTirm}}, \code{\link{fitEcm}}
-
-# @author Matthew W. Pennell
-
-# @export buildClassTable
-
-# @examples
-
-simulate_coverage <- function(a, p_assign, coverage){
-	if(!inherits(a, "recombine")){
-		stop(paste("Object 'a' needs to be of class 'recombine'.", sep=""))
+simulate_coverage <- function(simdata, p.assign, coverage){
+	if(!inherits(simdata, "recombine")){
+		stop(paste("Object 'simdata' needs to be of class 'recombine'.", sep=""))
 	}
 
-	simulated.reads.total <- lapply(a$chromatids.recombined, function(i) return(rpois(i, coverage)))
+	simulated.reads.total <- lapply(simdata$chromatids.recombined, function(i) return(rpois(i, coverage)))
 	
 	# This block returns the number of simulated reads for each parental type, 0 and 1, for each snp position.
 	out <- lapply(1:4, function(i){
-		correct_reads <- rbinom(size=simulated.reads.total[[i]], prob=p_assign, n=simulated.reads.total[[i]])
+		correct_reads <- rbinom(size=simulated.reads.total[[i]], prob=p.assign, n=simulated.reads.total[[i]])
 		incorrect_reads <- simulated.reads.total[[i]] - correct_reads 
 
-		p0.assign <- sapply(1:length(a$chromatids.recombined[[i]]), function(x){
-				if(a$chromatids.recombined[[i]][x]==0){
+		p0.assign <- sapply(1:length(simdata$chromatids.recombined[[i]]), function(x){
+				if(simdata$chromatids.recombined[[i]][x]==0){
 					return(correct_reads[x])
 				}
-				if(a$chromatids.recombined[[i]][x]==1){
+				if(simdata$chromatids.recombined[[i]][x]==1){
 					return(incorrect_reads[x])
 				}
 			})
-		p1.assign <- sapply(1:length(a$chromatids.recombined[[i]]), function(x){
-				if(a$chromatids.recombined[[i]][x]==1){
+		p1.assign <- sapply(1:length(simdata$chromatids.recombined[[i]]), function(x){
+				if(simdata$chromatids.recombined[[i]][x]==1){
 					return(correct_reads[x])
 				}
-				if(a$chromatids.recombined[[i]][x]==0){
+				if(simdata$chromatids.recombined[[i]][x]==0){
 					return(incorrect_reads[x])
 				}
 			})
 		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
 
 	})
-	out[['snps']] <- a$parents$snps
+	out[['snps']] <- simdata$parents$snps
 
 	class(out) <- c("list", "snp.recom")
 	return(out)
 }
+
+# Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Function to make sure values in a vector, a, are between x and y, inclusive:
 check_values <- function(a,x,y){
@@ -272,7 +292,8 @@ mutate_snps <- function(xx, mu=mu){
 	return(xx)
 }
 
-# Given the frequency of crossover events, f.cross, sample whether one is to occur (1=yes, crossover; 0=no, non-crossover).
+# Given the frequency of crossover events, f.cross, sample whether one is to occur 
+#     (1=yes, crossover; 0=no, non-crossover).
 cross_vs_noncross <- function(f.cross){
 	sample(c(1,0), 1, prob=c(f.cross, 1-f.cross))
 }
