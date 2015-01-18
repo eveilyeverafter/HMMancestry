@@ -68,10 +68,10 @@
 #' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
 #' p <- make_parents(l) # make the parent
 #' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' sim_reads <- simulate_coverage(a=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
+#' sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
 #' # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
-#' fbres <- estimate_anc_fwd_back(snp_dat=sim_reads, chr_name="I", p.assign=p_a, p_trans=rec)
-#' fb_2_tetrad_states(fbres)
+#' fbres <- estimate_anc_fwd_back(snp.dat=sim_reads, chr.name="I", p.assign=p_a, p.trans=rec)
+#' # fb_2_tetrad_states(fbres)
 #' infer_tracts(data=fbres, tetrad=1)
 
 infer_tracts <- function(data, tetrad=1, chr="I"){
@@ -85,7 +85,8 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
     # Convert from class foward.backward to tetrad.states, if needed:
     if(!inherits(data, "tetrad.states")){
         tetrad_states <- fb_2_tetrad_states(data)
-        chr <- fbres[[1]]$chr_name
+        chr <- data[[1]]$chr.name
+        tetrad <- data[[1]]$tetrad.id
     } else {
         tetrad_states <- data
     }
@@ -104,7 +105,7 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
 
     # Go through the chromosome and call each region as a specific 'tract':
     out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
-        # print(res)
+        print(res)
         type="NULL"
         BIAS="NULL"
         # print(res)
@@ -211,7 +212,7 @@ fb_2_tetrad_states <- function(data){
     if(!res){
         stop("Object data needs to be of class forward.backward.")
     }
-        out <- data.frame(snp=data[[1]]$snp_locations, one=data[[1]]$states_inferred,
+        out <- data.frame(snp=data[[1]]$snp.locations, one=data[[1]]$states_inferred,
             two=data[[2]]$states_inferred,three=data[[3]]$states_inferred,four=data[[4]]$states_inferred)
         class(out) <- c("data.frame", "tetrad.states")
         return(out)        

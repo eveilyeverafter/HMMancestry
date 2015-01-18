@@ -251,7 +251,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 					return(incorrect_reads[x])
 				}
 			})
-		return(list(p0.assign=p0.assign, p1.assign=p1.assign))
+		return(list(p0.assign=p0.assign, p1.assign=p1.assign, snps=simdata$parents$snps))
 
 	})
 	out[['snps']] <- simdata$parents$snps
