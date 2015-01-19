@@ -153,32 +153,46 @@ tetrad_est_fwd_back <- function(snp.dat, tetrad.id=1, chr.name="I", p.assign, p.
 }
 
 
-# # For single spores (non tetrad information):
-# set.seed(1234567) # For reproducability
-# l <- 1000 # number of loci to simulate
-# rec <- 0.01 # recombination rate between each snp
-# r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-# # probability of correct sequencing assignment (1-sequence error rate) 
-# # + probabilty of mutation that makes snps identical by state
-# p_a <- .999 
-# p <- make_parents(l) # make the parent
-
-# # Simulate 100 spores, each from a different tetrad:
-# # This can probably be an exported function:
-# nspores <- 50
-# spores <- lapply(1:nspores, function(Z){
-#         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#         sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
-#         to.pick <- sample(c(1,4), 1)
-#         class(sim_reads[[to.pick]]) <- list("single.spore")
-#         return(sim_reads[[to.pick]])
-#         })
-# Allspores <- lapply(1:nspores, function(Z){
-#         fbres2 <- est_fwd_back(single.snp.dat=spores[[Z]], spore_number=Z, chr.name="I", p.assign=p_a, p.trans=rec)
-#         return(fbres2)
-#     })
-# # Table of spores (rows) by loci (columns) giving the inferred states
-# df <- do.call(rbind,lapply(Allspores, function(i){return(as.numeric(i$states_inferred))}))
+#' @title Infer genotypic states using the Forward-Backward algorithm when spores are randomly
+#' sampled en masse
+#'
+#' @description to do 
+#' 
+#' @param to do 
+#' 
+#' @return to do
+#' 
+#' @references Hohenlohe, P.A., S. Bassham, M. Currey, and W.A. Cresko. 2012. Extensive linkage 
+#' disequilibrium and parallel adaptive divergence across threespine stickleback genomes. 
+#' Phil. Trans. R. Soc. B, 395-408, doi: 10.1098/rstb.2011.0245
+#' 
+#' @seealso \code{\link{tetrad_est_fwd_back}}
+#' 
+#' @author Tyler D. Hether
+#' 
+#' @export est_fwd_back
+#' 
+#' @examples
+#' set.seed(1234567) # For reproducability
+#' # simulate a recombination hotspot between the 100th and 101st snp
+#' rec <- c(rep(0.001, 99), 0.1, rep(0.001, 99))
+#' n.spores <- 500 # number of spores to simulate
+#' spores <- sim_en_masse(n.spores=n.spores, l=200, rec=rec, 
+#'  p.assign=.999, mu.rate=0.001, f.cross=0.5, 
+#'     f.convert=0.5, length.conversion=10, coverage=1)
+#' 
+#' # Run the fb algorithm to estimate the parental states:
+#' Allspores <- lapply(1:n.spores, function(Z){
+#'         fbres2 <- est_fwd_back(single.snp.dat=spores[[Z]], 
+#'  spore_number=Z, chr.name="I", p.assign=0.999, p.trans=mean(rec))
+#'         return(fbres2)
+#'     })
+#' 
+#' df <- do.call(rbind,lapply(Allspores, function(i){
+#'  return(as.numeric(i$states_inferred))}))
+#' 
+#' plot(apply(t(apply(df, 1, id_hotspots)), 2, sum), 
+#'  type="l", xlab="snp", ylab="Number of recombination events")
 
 est_fwd_back <- function(single.snp.dat, spore_number=1, chr.name="I", p.assign, p.trans){
  
@@ -266,39 +280,6 @@ est_fwd_back <- function(single.snp.dat, spore_number=1, chr.name="I", p.assign,
     class(out) <- c("list", "single.forward.backward")
     return(out)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 check_est_input <- function(snp.dat, spore_number, chr.name, snp.locations, p.assign, p.trans, ...){
