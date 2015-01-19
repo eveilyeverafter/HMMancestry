@@ -44,6 +44,7 @@
 #' @export tetrad_est_fwd_back
 #' 
 #' @examples
+# Example 1: a single tetrad:
 #' set.seed(1234567) # For reproducability
 #' l <- 10 # number of loci to simulate
 #' rec <- 0.01 # recombination rate between each snp
@@ -56,7 +57,21 @@
 #' sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
 #' # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
 #' fbres <- tetrad_est_fwd_back(snp.dat=sim_reads, tetrad.id=2, chr.name="II", p.assign=p_a, p.trans=rec)
-#' # Need S3 methods for printing and plots results
+#' fbres
+#' #
+#' #
+#' # Example 2: 500 simulated tetrads
+#' set.seed(1234567) # For reproducability
+#' l <- 10
+#' rec <- rep(0.01, l-1)
+#' n.tetrads <- 500 # number of spores to simulate
+#' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, rec=rec, p.assign=0.999, 
+#'    mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=2, coverage=2.5)
+#' # loop through the results list and estimate parental states for each of the n.tetrads
+#' fbres2 <- lapply(1:length(res), function(Z){
+#'         tetrad_est_fwd_back(snp.dat=res[[Z]], tetrad.id=Z, chr.name="I", p.assign=0.999, p.trans=mean(rec))   
+#'     })
+#' fbres2
 
 tetrad_est_fwd_back <- function(snp.dat, tetrad.id=1, chr.name="I", p.assign, p.trans){
 
@@ -152,7 +167,6 @@ tetrad_est_fwd_back <- function(snp.dat, tetrad.id=1, chr.name="I", p.assign, p.
     return(all_spores)
 }
 
-
 #' @title Infer genotypic states using the Forward-Backward algorithm when spores are randomly
 #' sampled en masse
 #'
@@ -184,7 +198,8 @@ tetrad_est_fwd_back <- function(snp.dat, tetrad.id=1, chr.name="I", p.assign, p.
 #' # Run the fb algorithm to estimate the parental states:
 #' Allspores <- lapply(1:n.spores, function(Z){
 #'         fbres2 <- est_fwd_back(single.snp.dat=spores[[Z]], 
-#'  spore_number=Z, chr.name="I", p.assign=0.999, p.trans=mean(rec))
+#'             spore_number=Z, chr.name="I", p.assign=0.999, 
+#'             p.trans=mean(rec))
 #'         return(fbres2)
 #'     })
 #' 
@@ -283,8 +298,8 @@ est_fwd_back <- function(single.snp.dat, spore_number=1, chr.name="I", p.assign,
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 check_est_input <- function(snp.dat, spore_number, chr.name, snp.locations, p.assign, p.trans, ...){
-    if (!inherits(snp.dat, "snp.recom"))
-        stop("Object must be of class 'snp.recom'. See 'make_snp.data()'")
+    if (!inherits(snp.dat, "snp.recom") & !inherits(snp.dat, "individual.tetrad"))
+        stop("Object must be of class 'snp.recom' or 'individual.tetrad'")
     check_values(p.assign, 0, 1)
     check_values(p.trans, 0, 1)
     if(length(snp.dat[[1]]$p0.assign)!=length(unique(snp.locations))){

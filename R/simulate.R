@@ -260,6 +260,76 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 	return(out)
 }
 
+#' @title Simulate recombination of a given number of tetrads
+#' 
+#' @description This is a wrapper function of many other functions that simulates a given number of
+#' tetrads each with four haploid spores that are recombinants between two parents.  
+#' 
+#' @param n.tetrads An integer specifying the number of tetrads to simulate.
+#' 
+#' @param l an integer describing the number of loci to simulate.
+#' 
+#' @param rec a vector of length \code{l-1} that contains the the recombation rate 
+#' between each snp.
+#' 
+#' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
+#' correct sequencing assignment.
+#' 
+#' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
+#' 
+#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination 
+#' events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
+#' 
+#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion 
+#' during recombination.
+#' 
+#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
+#' tract.
+#' 
+#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
+#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
+#' 
+#' @return A list of length n.tetrads of class \code{tetrad}. Each element of 
+#' \code{tetrad} is itself a list of class \code{individual.tetrad}, which 
+#' contains four lists, one for each spore, and three elements: 
+#' \describe{
+#' 	\item{p0.assign}{The number of reads that were simulated for parent 0.}
+#' 	\item{p1.assign}{The number of reads taht were simulated for parent 1.}
+#' 	\item{snps}{The snp id along the simulated chromosome.}
+#' } 
+#' 
+#' @seealso \code{\link{recombine}}, \code{\link{make_parents}}, 
+#' \code{\link{simulate_coverage}}, \code{\link{recombine_index}}, \code{\link{id_hotspots}}
+#' 
+#' @author Tyler D. Hether 
+#' 
+#' @export sim_tetrad
+#' 
+#' @examples
+#' set.seed(1234567) # For reproducability
+#' # simulate a recombination hotspot between the 99th and 100th snp
+#' rec <- c(rep(0.001, 99), 0.5, rep(0.001, 99))
+#' n.tetrads <- 500 # number of spores to simulate
+#' res <- sim_tetrad(n.tetrads=n.tetrads, l=200, rec=rec, p.assign=0.999, 
+#'    mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=10, coverage=2.5)
+
+sim_tetrad <- function(n.tetrads, l, rec, p.assign, mu.rate, f.cross, f.convert, 
+        length.conversion, coverage){
+
+    out <- lapply(1:n.tetrads, function(Z, ...){
+
+        r <- recombine_index(rec)
+        p <- make_parents(l)
+        recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
+                f.convert=f.convert, length.conversion=length.conversion)
+        sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
+        class(sim_reads) <- list("individual.tetrad")
+        return(sim_reads)
+    })
+    class(out) <- c("list", "tetrad")
+    return(out)
+}
+
 #' @title Simulate random spores en masse
 #' 
 #' @description This is a wrapper function of many other functions that simulates a given number of
@@ -310,7 +380,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 #' rec <- c(rep(0.001, 99), 0.1, rep(0.001, 99))
 #' n.spores <- 500 # number of spores to simulate
 #' spores <- sim_en_masse(n.spores=n.spores, l=200, rec=rec, 
-#'	p.assign=.999, mu.rate=0.001, f.cross=0.5, 
+#' p.assign=.999, mu.rate=0.001, f.cross=0.5, 
 #'     f.convert=0.5, length.conversion=10, coverage=1)
 
 sim_en_masse <- function(n.spores, l, rec, p.assign, mu.rate, f.cross, f.convert, 
@@ -327,48 +397,8 @@ sim_en_masse <- function(n.spores, l, rec, p.assign, mu.rate, f.cross, f.convert
         class(sim_reads[[to.pick]]) <- list("single.spore")
         return(sim_reads[[to.pick]])
     })
-
+    class(out) <- c("list", "en.masse")
     return(out)
-}
-
-#' @title Identify recombination points from state sequences
-#' 
-#' @description This is a simple function that takes a vector of parental states
-#' along a chromosome and identifies where states have changed. Note: In this method, 
-#' a single base pair mutation is indistinguishable from a double recombination event. 
-#' 
-#' @param state.vector a vector of state values (0 or 1)
-#'
-#' @return a vector of length \code{state.vector} stating whether a recombination 
-#' event occured (1) or not (0).
-#' 
-#' @seealso \code{\link{sim_en_masse}}
-#' 
-#' @author Tyler D. Hether 
-#' 
-#' @export id_hotspots
-#' 
-#' @examples
-#' # A recombination occurred between snp 3 and 4 and between 8 and 9.
-#' statepath <- c(0,0,0,1,1,1,1,1,0,0,0)
-#' id_hotspots(state.vector=statepath)
-#' which(id_hotspots(state.vector=statepath)==1)
-
-id_hotspots <- function(state.vector){
-	if(length(state.vector)<=1){
-		stop("At least two snps needed to infer recombination points.")
-	}
-	out <- numeric(length(state.vector))
-	
-	for(i in 2:length(state.vector)){
-		if(state.vector[i]!=0 & state.vector[i]!=1){
-			stop("states need to be 0 or 1 only.")
-		}
-		if(state.vector[i]!=state.vector[(i-1)]){
-			out[i] <- 1
-		} 
-	}
-	return(out)
 }
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

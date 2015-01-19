@@ -47,7 +47,7 @@
 #' @export infer_tracts
 #' 
 #' @examples
-#' Simulated example 1
+#' Example 1: 1 tetrad
 #' set.seed(1234567) # For reproducability
 #' l <- 1000 # number of loci to simulate
 #' rec <- 0.01 # recombination rate between each snp
@@ -57,22 +57,28 @@
 #' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
 #' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
 #' states
-#' 
-#' infer_tracts(data=states, tetrad=1, chr="I")
-#' # This is also an example of the estimate_anc_fwd_back() function.
-#' # Simulated example 2, using the fb algorithm on 1x sequencing coverage
+#' #
+#' # Example 2: 100 simulated tetrads with a recombination hotspot
 #' set.seed(1234567) # For reproducability
-#' l <- 1000 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-#' p <- make_parents(l) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
-#' # Use the forward-backward algorithm to get the posterior probability of parent '0' ancestry and infer states
-#' fbres <- estimate_anc_fwd_back(snp.dat=sim_reads, chr.name="I", p.assign=p_a, p.trans=rec)
-#' # fb_2_tetrad_states(fbres)
-#' infer_tracts(data=fbres, tetrad=1)
+#' l <- 200 # loci
+#' # simulate a recombination hotspot between the 99th and 100th snp
+#' rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
+#' n.tetrads <- 500 # number of spores to simulate
+#' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, rec=rec, p.assign=0.999, 
+#'    mu.rate=0, f.cross=0.8, f.convert=0, length.conversion=0, coverage=0.5)
+#' # loop through the results list and estimate parental states for each of the n.tetrads
+#' fblist <- lapply(1:length(res), function(Z){
+#'         tetrad_est_fwd_back(snp.dat=res[[Z]], tetrad.id=Z, chr.name="I", 
+#'     p.assign=0.999, p.trans=mean(rec))   
+#'     })
+#' # loop through the estimated states paths and infer recombination events:
+#' inferlist <- lapply(1:length(fblist), function(Z){
+#'     infer_tracts(data=fblist[[Z]], tetrad=Z)
+#'     })
+#' # combine results into a single data.frame
+#' df <- do.call(rbind, inferlist)
+#' hist(filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
+#'  breaks=l, xlab="snp", main="start position of recombination point")
 
 infer_tracts <- function(data, tetrad=1, chr="I"){
     # data can be an object of two classes.
@@ -105,7 +111,7 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
 
     # Go through the chromosome and call each region as a specific 'tract':
     out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
-        print(res)
+        # print(res)
         type="NULL"
         BIAS="NULL"
         # print(res)
@@ -174,6 +180,76 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
     # Call additional tracts:
     out2 <- infer_COnoGC_tracts(out)
     return(out2)
+}
+
+#' @title Identify recombination points from state sequences
+#' 
+#' @description This is a simple function that takes a vector of parental states
+#' along a chromosome and identifies where states have changed. Note: In this method, 
+#' a single base pair mutation is indistinguishable from a double recombination event. 
+#' 
+#' @param state.vector a vector of state values (0 or 1)
+#'
+#' @return a vector of length \code{state.vector} stating whether a recombination 
+#' event occured (1) or not (0).
+#' 
+#' @seealso \code{\link{sim_en_masse}}
+#' 
+#' @author Tyler D. Hether 
+#' 
+#' @export id_hotspots
+#' 
+#' @examples
+#' Example 1: simple
+#' # A recombination occurred between snp 3 and 4 and between 8 and 9.
+#' statepath <- c(0,0,0,1,1,1,1,1,0,0,0)
+#' id_hotspots(state.vector=statepath)
+#' which(id_hotspots(state.vector=statepath)==1)
+#' #
+#' Example 2: complex
+#' set.seed(1234567) # For reproducability
+#' # simulate a recombination hotspot between the 99th and 100th snp
+#' rec <- c(rep(0.001, 99), 0.1, rep(0.001, 99))
+#' # simulate 500 spores en masse
+#' n.spores <- 500 
+#' spores <- sim_en_masse(n.spores=n.spores, l=200, rec=rec, 
+#'  p.assign=.999, mu.rate=0.001, f.cross=0.5, 
+#'     f.convert=0.5, length.conversion=10, coverage=1)
+#' 
+#' # Run the fb algorithm to estimate the parental states:
+#' Allspores <- lapply(1:n.spores, function(Z){
+#'         fbres2 <- est_fwd_back(single.snp.dat=spores[[Z]], 
+#'             spore_number=Z, chr.name="I", p.assign=0.999, 
+#'             p.trans=mean(rec))
+#'         return(fbres2)
+#'     })
+#' # extract the inferred states
+#' Allspores2 <- lapply(Allspores, function(i){
+#'     return(as.numeric(i$states_inferred))})
+#' 
+#' # organize into a df to apply
+#' df <- do.call(rbind,lapply(Allspores, function(i){
+#'  return(as.numeric(i$states_inferred))}))
+#' 
+#' # plot where a recombination event was inferred
+#' plot(apply(t(apply(df, 1, id_hotspots)), 2, sum), 
+#'  type="l", xlab="snp", ylab="Number of recombination events")
+
+id_hotspots <- function(state.vector){
+    if(length(state.vector)<=1){
+        stop("At least two snps needed to infer recombination points.")
+    }
+    out <- numeric(length(state.vector))
+    
+    for(i in 2:length(state.vector)){
+        if(state.vector[i]!=0 & state.vector[i]!=1){
+            stop("states need to be 0 or 1 only.")
+        }
+        if(state.vector[i]!=state.vector[(i-1)]){
+            out[i] <- 1
+        } 
+    }
+    return(out)
 }
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
