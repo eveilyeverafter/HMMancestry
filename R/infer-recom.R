@@ -200,13 +200,13 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
 #' @export id_hotspots
 #' 
 #' @examples
-#' Example 1: simple
+#' # Example 1: simple
 #' # A recombination occurred between snp 3 and 4 and between 8 and 9.
 #' statepath <- c(0,0,0,1,1,1,1,1,0,0,0)
 #' id_hotspots(state.vector=statepath)
 #' which(id_hotspots(state.vector=statepath)==1)
 #' #
-#' Example 2: complex
+#' # Example 2: complex
 #' set.seed(1234567) # For reproducability
 #' # simulate a recombination hotspot between the 99th and 100th snp
 #' rec <- c(rep(0.001, 99), 0.1, rep(0.001, 99))
