@@ -194,6 +194,8 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
 #' event occured (1) or not (0).
 #' 
 #' @seealso \code{\link{sim_en_masse}}
+#'
+#' @importFrom dplyr filter
 #' 
 #' @author Tyler D. Hether 
 #' 
