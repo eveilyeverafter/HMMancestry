@@ -1,2 +1,2 @@
 library('testthat')
-test_check('chromer')
+test_check('hmmspore')

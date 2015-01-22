@@ -1,7 +1,7 @@
 all: install
 
 test: install
-	make -C inst/tests test
+	Rscript -e 'library(methods); devtools::test()'
 
 document: roxygen staticdocs
 
