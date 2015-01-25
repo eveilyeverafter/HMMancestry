@@ -196,8 +196,8 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
     # emissions[i][j] = (n_i choose n_ij) * (1 - eps)^(n_ij) * (eps)^(n_i - n_ij)
     # if no data at SNP i, emissions[i][j] = 1 for all j
     #
-    k0 <- snp.dat[,3]
-    k1 <- snp.dat[,4]
+    k0 <- snp.dat[,5]
+    k1 <- snp.dat[,6]
     n_i <- k0+k1
     p0 <- choose(n_i,k0)*(p.assign^k0)*((1-p.assign)^(n_i-k0))
     p1 <- choose(n_i,k1)*(p.assign^k1)*((1-p.assign)^(n_i-k1))    
@@ -257,8 +257,8 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
         }
     })
 
-    out <- data.frame(Tetrad=tetrad.id, spore_number=spore_number, chr.name=chr.name, 
-             snp=snp.locations, emiss0=emissions[,1], emiss1=emissions[,2],
+    out <- data.frame(Tetrad=tetrad.id, Spore=spore_number, Chr=chr.name, 
+             Snp=snp.locations, emiss0=emissions[,1], emiss1=emissions[,2],
              forward0=forward[,1], forward1=forward[,2], backward0=backward[,1],
              backward1=backward[,2], Fscale=scale, Bscale=scaleb,
              posterior0=posterior[,1], posterior1=posterior[,2],

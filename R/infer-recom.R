@@ -47,55 +47,77 @@
 #' @export infer_tracts
 #' 
 #' @examples
-#' Example 1: 1 tetrad
-#' set.seed(1234567) # For reproducability
-#' l <- 1000 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-#' p <- make_parents(l) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-#' states
-#' #
-#' # Example 2: 100 simulated tetrads with a recombination hotspot
-#' set.seed(1234567) # For reproducability
-#' l <- 200 # loci
-#' # simulate a recombination hotspot between the 99th and 100th snp
-#' rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
-#' n.tetrads <- 500 # number of spores to simulate
-#' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, rec=rec, p.assign=0.999, 
-#'    mu.rate=0, f.cross=0.8, f.convert=0, length.conversion=0, coverage=0.5)
-#' # loop through the results list and estimate parental states for each of the n.tetrads
-#' fblist <- lapply(1:length(res), function(Z){
-#'         tetrad_est_fwd_back(snp.dat=res[[Z]], tetrad.id=Z, chr.name="I", 
-#'     p.assign=0.999, p.trans=mean(rec))   
-#'     })
-#' # loop through the estimated states paths and infer recombination events:
-#' inferlist <- lapply(1:length(fblist), function(Z){
-#'     infer_tracts(data=fblist[[Z]], tetrad=Z)
-#'     })
-#' # combine results into a single data.frame
-#' df <- do.call(rbind, inferlist)
-#' hist(filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
-#'  breaks=l, xlab="snp", main="start position of recombination point")
+# Example 1: 1 tetrad
+set.seed(1234567) # For reproducability
+l <- 1000 # number of loci to simulate
+rec <- 0.01 # recombination rate between each snp
+r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
+p <- make_parents(l) # make the parent
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
+infer_tracts(data=states, tetrad=1, chr="I")
+#
+# Example 2: 100 simulated tetrads with a recombination hotspot
+set.seed(1234567) # For reproducability
+rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
+res <- sim_tetrad(n.tetrads=100, l=200, rec=rec, p.assign=0.999, 
+   mu.rate=0, f.cross=0.8, f.convert=0, length.conversion=0, coverage=0.5)
+snp.dat <- tetrad_to_df(res)
+# Get the inferred states
+states1 <- ddply(snp.dat, .(Tetrad, Spore, Chr), function(x){
+    est_fwd_back(snp.dat=x, p.assign=0.999, p.trans=0.01)
+    })
+states2 <- fwd_back_to_tetrad_states(fb_data=states1)
 
-infer_tracts <- function(data, tetrad=1, chr="I"){
+
+
+
+# # loop through the results list and estimate parental states for each of the n.tetrads
+# fblist <- lapply(1:length(res), function(Z){
+#         tetrad_est_fwd_back(snp.dat=res[[Z]], tetrad.id=Z, chr.name="I", 
+#     p.assign=0.999, p.trans=mean(rec))   
+#     })
+# # loop through the estimated states paths and infer recombination events:
+# inferlist <- lapply(1:length(fblist), function(Z){
+#     infer_tracts(data=fblist[[Z]], tetrad=Z)
+#     })
+# # combine results into a single data.frame
+# df <- do.call(rbind, inferlist)
+# hist(filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
+#  breaks=l, xlab="snp", main="start position of recombination point")
+
+# testing
+data <- filter(states2, Tetrad==22)
+
+ddply(states2, .(Tetrad, Chr), infer_tracts)
+
+
+******** To do *******  
+Fix class checking
+**********************
+
+infer_tracts <- function(data){
+    # Short term fix
+    class(data) <- c("data.frame", "tetrad.states")
+
     # data can be an object of two classes.
     # 1) of class "tetrad.states" generally inherited from the recombine_to_tetrad_states function OR
-    # 2) a list of four elements, each of class forward.backward that is a result of the estimate_anc_fwd_back function. 
+    # 2) to do:
     if(!check_class(data)){
             stop(paste("Object 'data' needs to be of class tetrad.states or forward.backward", sep=""))
     }
 
-    # Convert from class foward.backward to tetrad.states, if needed:
-    if(!inherits(data, "tetrad.states")){
-        tetrad_states <- fb_2_tetrad_states(data)
-        chr <- data[[1]]$chr.name
-        tetrad <- data[[1]]$tetrad.id
-    } else {
+    # # Convert from class foward.backward to tetrad.states, if needed:
+    # if(!inherits(data, "tetrad.states")){
+    #     tetrad_states <- fb_2_tetrad_states(data)
+    #     chr <- data[[1]]$chr.name
+    #     tetrad <- data[[1]]$tetrad.id
+    # } else {
         tetrad_states <- data
-    }
+        tetrad <- data$Tetrad[1]
+        chr <- data$Chr[1]
+    # }
 
     # Get the unique candidate 'regions':
     regions <- unique_regions(tetrad_states)
@@ -107,7 +129,7 @@ infer_tracts <- function(data, tetrad=1, chr="I"){
     text <- get_text(tetrad_states)
 
     # Combine datasets: 
-    CO_summary <- data.frame(snp=regions$tetrad_states[,'snp'], type=regions$type, GCbias=biases, text=text)
+    CO_summary <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
 
     # Go through the chromosome and call each region as a specific 'tract':
     out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
@@ -268,12 +290,14 @@ get_flanking <- function(res_range, direction, df){
 }
 
 # A function for converting recombine object to tetrad.states
+#' @export recombine_to_tetrad_states
 recombine_to_tetrad_states <- function(tetrad_data){
     if(!inherits(tetrad_data, "recombine")){
         stop(paste("Object 'tetrad_data' needs to be of class 'recombine'.", sep=""))
     }
-
-    out <- data.frame(snp=tetrad_data$parents$snps, one=tetrad_data$chromatids.recombined$p1_1, 
+    n <- length(tetrad_data$parents$snps)
+    out <- data.frame(Tetrad=rep(1, n), Chr=rep(1, n),
+        Snp=tetrad_data$parents$snps, one=tetrad_data$chromatids.recombined$p1_1, 
         two=tetrad_data$chromatids.recombined$p1_2, three=tetrad_data$chromatids.recombined$p2_1, 
         four=tetrad_data$chromatids.recombined$p2_2)
     class(out) <- c("data.frame", "tetrad.states")
@@ -316,12 +340,12 @@ check_tie <- function(x){
 # Estimate crossover and gene conversion events
 unique_regions <- function(data){
     if(!check_class(data)){
-            stop(paste("Object 'data' needs to be of class tetrad.states or forward.backward", sep=""))
+            stop(paste("Object 'data' needs to be of class tetrad.states", sep=""))
     }
 
     # Initialize values
-    sums <- apply(data[,2:5],1,sum)
-    text <- apply(data[,2:5],1,function(x){paste(x[1],x[2],x[3],x[4],sep="_")})
+    sums <- apply(data[,4:7],1,sum)
+    text <- apply(data[,4:7],1,function(x){paste(x[1],x[2],x[3],x[4],sep="_")})
     type <- numeric(length(sums))
     GC_count <- 0
     CO_count <- 0
@@ -374,7 +398,7 @@ check_GC_bias <- function(tetrad_states){
     if(!inherits(tetrad_states, "data.frame")){
         stop(paste("Object 'tetrad_states' needs to be of class 'data.frame'.", sep=""))
     }
-    sums <- apply(tetrad_states[,2:5],1,sum)
+    sums <- apply(tetrad_states[,4:7],1,sum)
     return(sums)
 }
 
@@ -438,6 +462,14 @@ check_class <- function(i){
     return(res)
 }
 
+#' @export fwd_back_to_tetrad_states
+fwd_back_to_tetrad_states <- function(fb_data){
+    trim <- fb_data[,c('Tetrad', 'Spore', 'Chr', 'Snp', 'states_inferred')]
+    trim1 <- reshape(trim, timevar="Spore", idvar=c("Tetrad", "Chr", "Snp"), direction="wide")
+    colnames(trim1) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
+    class(trim1) <- c("data.frame", "tetrad.states")
+    return(trim1)
+}
 
 
 
