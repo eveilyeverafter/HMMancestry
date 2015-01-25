@@ -401,7 +401,6 @@ sim_en_masse <- function(n.spores, l, rec, p.assign, mu.rate, f.cross, f.convert
     return(out)
 }
 
-
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Function to make sure values in a vector, a, are between x and y, inclusive:
