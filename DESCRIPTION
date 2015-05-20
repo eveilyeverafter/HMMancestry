@@ -17,3 +17,5 @@ LazyLoad: yes
 Packaged: 2015-01-15 10:10:27 UTC; tdh
 Repository: CRAN
 Date/Publication: 2012-08-16 13:47:50
+Imports: Rcpp (>= 0.11.3)
+LinkingTo: Rcpp
