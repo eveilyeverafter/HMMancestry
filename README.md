@@ -24,3 +24,10 @@ extracted and sequenced using which ever method the experimenter desires. Read c
 individually barcoded and sequenced spore are estimated from the parental snps using a mapping 
 program like bowtie2 or bwa. These read counts are used in hmmspore to estimate recombination 
 hotspots, average length of a gene conversion tracts, and more.
+
+
+To build:
+
+make roxygen
+make build
+make install
