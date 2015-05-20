@@ -27,7 +27,8 @@ hotspots, average length of a gene conversion tracts, and more.
 
 
 To build:
-
+```
 make roxygen
 make build
 make install
+```
