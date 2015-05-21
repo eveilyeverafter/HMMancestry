@@ -11,6 +11,8 @@ Function Declarations
 // This is an internal function for n choose k
 unsigned nChoosek( unsigned n, unsigned k );
 
+// This is the haldane function
+double haldane(double d);
 
 // This is the main function to export
 //'@export
@@ -90,7 +92,7 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
         for(int i=1; i<n_snps; i++)
         {
             // int i=1;
-            double a(1-(displace[i-1])*p_trans), b((displace[i-1])*p_trans), c((displace[i-1])*p_trans), d(1-(displace[i-1])*p_trans);  
+            double a(1-(haldane(displace[i-1]))*p_trans), b((haldane(displace[i-1]))*p_trans), c((haldane(displace[i-1]))*p_trans), d(1-(haldane(displace[i-1]))*p_trans);  
             double e(emissions(i,0)), f(0.0), g(0.0), h(emissions(i,1));
            
            // Calculate forward probs
@@ -116,7 +118,7 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
         // For the rest:
         for(int i=(n_snps-2); i>=0; i--)
         {
-            double a(1-(displace[i])*p_trans), b((displace[i])*p_trans), c((displace[i])*p_trans), d(1-(displace[i])*p_trans);  
+            double a(1-(haldane(displace[i]))*p_trans), b((haldane(displace[i]))*p_trans), c((haldane(displace[i]))*p_trans), d(1-(haldane(displace[i]))*p_trans);  
             double e(emissions(i+1,0)), f(0.0), g(0.0), h(emissions(i+1,1));
            backward(i,0) = (((a*e+b*g)*backward(i+1,0))+((a*f+b*h)*backward(i+1,1)));
            backward(i,1) = (((c*e+d*g)*backward(i+1,0))+((c*f+d*h)*backward(i+1,1)));
@@ -208,7 +210,13 @@ for( int i = 2; i <= k; ++i ) {
 return result;
 }
 
-
+// To calculate the probability of an odd number of crossover events given the 
+// distance (bps) between two snps
+double haldane(double d)
+{
+    double out = (0.5)*(1.0 - exp(-2.0*d));
+    return out;
+}
 
 
 
