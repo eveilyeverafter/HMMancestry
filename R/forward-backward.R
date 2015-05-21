@@ -21,6 +21,8 @@
 #' 
 #' @param p.trans the per snp (check that) recombination (i.e., transition) probability. 
 #' 
+#'@importFrom Rcpp evalCpp
+#'@useDynLib WMUtils
 #' @details \code{tetrad_estimate_anc_fwd_back} attempts to estimate 
 #' parental genotypic 'states' along a chromosome given empirical or 
 #' simulated F2 cross data were all four spores of a tetrad are genotyped. 
@@ -211,7 +213,7 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
     scale[1] <- sum(forward[1,])
     forward[1,] <- forward[1,]/scale[1]         #re-scale forward probabilities by their sum to avoid underflow
     for(i in 2:n_snps){
-        T <- matrix(c(1-(displace[i-1]*p.trans), displace[i-1]*p.trans, displace[i-1]*p.trans, 1-(displace[i-1]*p.trans)), byrow=TRUE, ncol=2)
+        T <- matrix(c(1-(haldane(displace[i-1])*p.trans), haldane(displace[i-1])*p.trans, haldane(displace[i-1])*p.trans, 1-(haldane(displace[i-1])*p.trans)), byrow=TRUE, ncol=2)
         e <- diag(emissions[i,])
         forward[i,] <- e %*% T %*% forward[i-1,]
         scale[i] = sum(forward[i,])
@@ -221,7 +223,7 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
     # 5) calculate backward probabilities:
     backward[n_snps,] = c(1,1) #1/scale[n_snps]
     for(i in (n_snps-1):1){
-        T <- matrix(c(1-(displace[i]*p.trans), displace[i]*p.trans, displace[i]*p.trans, 1-(displace[i]*p.trans)), byrow=TRUE, ncol=2)
+        T <- matrix(c(1-(haldane(displace[i])*p.trans), haldane(displace[i])*p.trans, haldane(displace[i])*p.trans, 1-(haldane(displace[i])*p.trans)), byrow=TRUE, ncol=2)
         e <- diag(emissions[i+1,])
         backward[i,] <- T %*% e %*% backward[i+1,]
         # backward[i+1,] %*% T %*% e # old (incorrect) way
@@ -337,4 +339,10 @@ print.estimate_anc_fwd_back <- function(x, ...){
     ## make pretty output format
     ## print to screen
 }
+
+# To calculate the probability of an odd number of crossover events given the 
+# distance (bps) between two snps
+haldane <- function(d){ (1/2)*(1- exp(-2*d))}
+
+
 
