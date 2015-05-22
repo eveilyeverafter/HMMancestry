@@ -163,7 +163,8 @@
 #     est_fwd_back(snp.dat=x, p.assign=0.999, p.trans=0.01)
 #     })
 
-est_fwd_back <- function(snp.dat, p.assign, p.trans){
+est_fwd_back <- function(snp.dat, p.assign, scale){
+    p.trans = scale
     # colnames(snp.dat) == c("Tetrad", "Spore", "Chr", "Snp", "p0", "p1")
     if(!inherits(snp.dat, "data.frame")) {
         if(inherits(snp.dat, "tetrad")) {
@@ -183,7 +184,7 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
         snp.locations <- snp.dat[,4]        
     }  
 
-    check_est_input(p.assign, p.trans)
+    # check_est_input(p.assign, p.trans)
     # 
     displace <- snp.locations[-c(1)]-snp.locations[1:(length(snp.locations)-1)]
           
@@ -223,7 +224,8 @@ est_fwd_back <- function(snp.dat, p.assign, p.trans){
     # 5) calculate backward probabilities:
     backward[n_snps,] = c(1,1) #1/scale[n_snps]
     for(i in (n_snps-1):1){
-        T <- matrix(c(1-(haldane(displace[i])*p.trans), haldane(displace[i])*p.trans, haldane(displace[i])*p.trans, 1-(haldane(displace[i])*p.trans)), byrow=TRUE, ncol=2)
+        
+        T <- matrix(c(1-(haldane(displace[i]*p.trans)), haldane(displace[i]*p.trans), haldane(displace[i]*p.trans), 1-(haldane(displace[i]*p.trans))), byrow=TRUE, ncol=2)
         e <- diag(emissions[i+1,])
         backward[i,] <- T %*% e %*% backward[i+1,]
         # backward[i+1,] %*% T %*% e # old (incorrect) way

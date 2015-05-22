@@ -92,7 +92,7 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
         for(int i=1; i<n_snps; i++)
         {
             // int i=1;
-            double a(1-(haldane(displace[i-1]))*p_trans), b((haldane(displace[i-1]))*p_trans), c((haldane(displace[i-1]))*p_trans), d(1-(haldane(displace[i-1]))*p_trans);  
+            double a(1-(haldane(displace[i-1])*p_trans)), b((haldane(displace[i-1])*p_trans)), c((haldane(displace[i-1])*p_trans)), d(1-(haldane(displace[i-1])*p_trans));
             double e(emissions(i,0)), f(0.0), g(0.0), h(emissions(i,1));
            
            // Calculate forward probs

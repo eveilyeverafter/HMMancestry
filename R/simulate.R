@@ -64,21 +64,25 @@ make_parents <- function(L){
 #' @examples
 #' 
 #' set.seed(1234567)
-#' l <- 50 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' recombine_index(p.trans=rep(rec, l-1))
+#' l <- 100000 # number of loci to simulate
+#' scale <- 0.01 # d = bp*scale
+#' snps <- 1:l # floor(seq(from=1, to=1000, length.out=l)) # position of snps (in bps)
+#' # snps[25:l] <- 5000+snps[25:l]
+#' sum(recombine_index(scale=scale, snps=snps))/l
 
-recombine_index <- function(p.trans){
-	if(class(p.trans)!="numeric"){
-		stop("The vector 'p.trans' needs to be numeric")
-	}
+recombine_index <- function(scale, snps){
+	# if(class(p.trans)!="numeric"){
+	# 	stop("The vector 'p.trans' needs to be numeric")
+	# }
 
-	check_values(a=p.trans, x=0, y=0.5)
-	
+	# check_values(a=p.trans, x=0, y=0.5)
+	haldane <- function(d){ (1/2)*(1- exp(-2*d))}
+	displacement <- sapply(2:length(snps), function(x){
+		return(snps[x]-snps[x-1])
+		})
 	# 1==recombination occurs, 0==no recombination
-	out <- sapply(p.trans, function(i) rbinom(n=1, size=1, prob=i)
+	out <- sapply(1:length(displacement), function(i) rbinom(n=1, size=1, prob=haldane(displacement[i]*scale)))
 
-	)
 	return(out)
 }
 
@@ -130,11 +134,11 @@ recombine_index <- function(p.trans){
 #' @examples
 #' set.seed(1234567) # For reproducability
 #' l <- 50 # number of loci to simulate
-#' rec <- 0.02 # recombination rate between each snp
-#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
+#' scale <- 0.01; snps <- 1:l;
+#' r <- recombine_index(scale, snps) 
 #' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-#' p <- make_parents(l) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+#' p <- make_parents(l) # make the parents
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=0, length.conversion=10) # recombine parents
 #' recomb_sim
 
 recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
@@ -308,17 +312,17 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 #' @examples
 #' set.seed(1234567) # For reproducability
 #' # simulate a recombination hotspot between the 99th and 100th snp
-#' rec <- c(rep(0.001, 99), 0.5, rep(0.001, 99))
-#' n.tetrads <- 500 # number of spores to simulate
-#' res <- sim_tetrad(n.tetrads=n.tetrads, l=200, rec=rec, p.assign=0.999, 
+#' l=200; scale = 0.01; snps=2*(1:l);
+#' n.tetrads <- 100 # number of spores to simulate
+#' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, scale=scale, snps=snps, p.assign=0.999, 
 #'    mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=10, coverage=2.5)
 
-sim_tetrad <- function(n.tetrads, l, rec, p.assign, mu.rate, f.cross, f.convert, 
+sim_tetrad <- function(n.tetrads, l, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
         length.conversion, coverage){
 
     out <- lapply(1:n.tetrads, function(Z, ...){
 
-        r <- recombine_index(rec)
+        r <- recombine_index(scale, snps)
         p <- make_parents(l)
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
@@ -377,18 +381,18 @@ sim_tetrad <- function(n.tetrads, l, rec, p.assign, mu.rate, f.cross, f.convert,
 #' @examples
 #' set.seed(1234567) # For reproducability
 #' # simulate a recombination hotspot between the 100th and 101st snp
-#' rec <- c(rep(0.001, 99), 0.1, rep(0.001, 99))
+#' l=100; scale = 0.01; snps=1:l
 #' n.spores <- 500 # number of spores to simulate
-#' spores <- sim_en_masse(n.spores=n.spores, l=200, rec=rec, 
+#' spores <- sim_en_masse(n.spores=n.spores, l=l, scale=scale, snps=snps, 
 #' p.assign=.999, mu.rate=0.001, f.cross=0.5, 
 #'     f.convert=0.5, length.conversion=10, coverage=1)
 
-sim_en_masse <- function(n.spores, l, rec, p.assign, mu.rate, f.cross, f.convert, 
+sim_en_masse <- function(n.spores, l, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
         length.conversion, coverage){
 
     out <- lapply(1:n.spores, function(Z, ...){
 
-        r <- recombine_index(rec)
+        r <- recombine_index(scale, snps)
         p <- make_parents(l)
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
