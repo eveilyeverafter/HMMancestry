@@ -1,23 +1,5 @@
 
 
-# # Make a temp test dataset of 250 individual diploids
-# set.seed(1234567) # For reproducability
-# # simulate a recombination hotspot between the 100th and 101st snp
-# l=100; scale = 0.01; snps=1:l
-# n.spores <- 500 # number of spores to simulate
-# spores <- sim_en_masse(n.spores=n.spores, l=l, scale=scale, snps=snps, 
-# p.assign=.999, mu.rate=0.001, f.cross=0.5, 
-#     f.convert=1, length.conversion=10, coverage=1)
-
-# # make diploids
-# dat <- lapply(1:250, function(x){
-#     return(data.frame(Ind=x,Chr="I", Snp=spores[[x]]$snps, 
-#         p0=spores[[x]]$p0+spores[[x+250]]$p0,
-#         p1=spores[[x]]$p1+spores[[x+250]]$p1))
-#     })
-
-
-# diploid.dat <- dat[[8]] # pick one
 
 #' @export est_fwd_back_diploid
 est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
@@ -67,7 +49,7 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
     #
     # 3) calculate pi[k] (vector of state probabilities at first position -- here use 1/k for each)
     #
-    pi_initial <- c(0.25, 0.5, 0.25)
+    pi_initial <- c(rep(0.3333, 3))
     # 4) calculate forward probabilities and scaling factor:
     forward[1,] <- pi_initial*emissions[1,]
     scale[1] <- sum(forward[1,])
@@ -129,10 +111,10 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
     })
 
     out <- data.frame(Ind=spore_number, Chr=chr.name, 
-             Snp=snp.locations, emiss0=emissions[,1], emiss1=emissions[,2],
-             forward0=forward[,1], forward1=forward[,2], backward0=backward[,1],
-             backward1=backward[,2], Fscale=scale, Bscale=scaleb,
-             posterior0=posterior[,1], posterior1=posterior[,2],
+             Snp=snp.locations, emiss0=emissions[,1], emiss1=emissions[,2], emiss2=emissions[,3],
+             forward0=forward[,1], forward1=forward[,2], forward2=forward[,3], backward0=backward[,1],
+             backward1=backward[,2], backward2=backward[,3], Fscale=scale, Bscale=scaleb,
+             posterior0=posterior[,1], posterior1=posterior[,2], posterior2=posterior[,3],
              states_inferred=states_inferred, lnL=rep(lnL, length(n_snps)))
 
     class(out) <- c("data.frame")
