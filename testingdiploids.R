@@ -1,4 +1,6 @@
 
+
+
 library(multicore)
 library(plyr)
 library(dplyr)
@@ -6,6 +8,56 @@ library(hmmspore)
 library(ggplot2)
 library(gridExtra)
 library(lattice)
+library(microbenchmark)
+
+# Make a temp test dataset of 250 individual diploids
+set.seed(1234567) # For reproducability
+# simulate a recombination hotspot between the 100th and 101st snp
+l=1000; scale = 0.01; snps=1:l
+n.spores <- 500 # number of spores to simulate
+spores <- sim_en_masse(n.spores=n.spores, l=l, scale=scale, snps=snps, 
+p.assign=.999, mu.rate=0.001, f.cross=1, 
+    f.convert=0, length.conversion=10, coverage=10)
+
+# make diploids
+dat <- lapply(1:250, function(x){
+    return(data.frame(Ind=x,Chr="I", Snp=spores[[x]]$snps, 
+        p0=spores[[x]]$p0+spores[[x+250]]$p0,
+        p1=spores[[x]]$p1+spores[[x+250]]$p1))
+    })
+
+
+dat <- dat[[1]] # pick one
+
+
+RR <- est_fwd_back_diploid(dat, 0.999, 0.01)
+CPP <- c_est_fwd_back_diploid(dat[,3], dat[,4], dat[,5], 0.999, 0.01)
+# ^^^ same within round error tol.
+
+microbenchmark(
+est_fwd_back_diploid(dat, 0.999, 0.01),
+c_est_fwd_back_diploid(dat[,3], dat[,4], dat[,5], 0.999, 0.01)
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # How well does the max likelihood function work in finding the true
 # values of scale and p.assign in simulation? 
