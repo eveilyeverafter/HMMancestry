@@ -378,7 +378,7 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
                     posterior(i,j) = (forward(i,j)*backward(i,j))/(forward(i,0)*backward(i,0) + forward(i,1)*backward(i,1) + forward(i,2)*backward(i,2));
                 }
             }
-            cout << posterior(i,0) << " " << posterior(i,1) << " " << posterior(i,2) << endl;
+            // cout << posterior(i,0) << " " << posterior(i,1) << " " << posterior(i,2) << endl;
         }
 
     // 6) total likelihood:
