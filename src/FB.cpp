@@ -270,15 +270,24 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
             double R(haldane(D)); // R = recombination rate between the two snps
             // cout << D << endl;
 
-            double a(1-R-pow(R,2));
+            // double a(1-R-pow(R,2));
+            // double b(R);
+            // double c(pow(R,2));
+            // double d(R);
+            // double e(1-(2*R));
+            // double f(R);
+            // double g(pow(R,2));
+            // double h(R);
+            // double ii(1-R-pow(R,2));
+            double a(1-R);
             double b(R);
             double c(pow(R,2));
             double d(R);
-            double e(1-(2*R));
+            double e(1-R);
             double f(R);
             double g(pow(R,2));
             double h(R);
-            double ii(1-R-pow(R,2));
+            double ii(1-R);
 
             double j(emissions(i,0));
             double k(0.0);
@@ -322,15 +331,25 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
             double R(haldane(D)); // R = recombination rate between the two snps
             // cout << D << endl;
 
-            double a(1-R-pow(R,2));
+            // double a(1-R-pow(R,2));
+            // double b(R);
+            // double c(pow(R,2));
+            // double d(R);
+            // double e(1-(2*R));
+            // double f(R);
+            // double g(pow(R,2));
+            // double h(R);
+            // double ii(1-R-pow(R,2));
+            
+            double a(1-R);
             double b(R);
             double c(pow(R,2));
             double d(R);
-            double e(1-(2*R));
+            double e(1-R);
             double f(R);
             double g(pow(R,2));
             double h(R);
-            double ii(1-R-pow(R,2));
+            double ii(1-R);
 
             double j(emissions(i+1,0));
             double k(0.0);
@@ -386,6 +405,7 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
         for(int i=0; i<n_snps; i++)
         {
             lnL+=log(scale[i]);
+            
         }  
         //cout << "lnL = " << lnL << endl;
         
