@@ -255,7 +255,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 					return(incorrect_reads[x])
 				}
 			})
-		return(list(p0.assign=p0.assign, p1.assign=p1.assign, snps=simdata$parents$snps))
+		return(list(p0.assign=p0.assign, p1.assign=p1.assign, snps=simdata$parents$snps, states_given=simdata$chromatids.recombined[[i]]))
 
 	})
 	out[['snps']] <- simdata$parents$snps
