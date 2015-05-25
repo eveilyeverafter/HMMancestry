@@ -397,7 +397,7 @@ sim_en_masse <- function(n.spores, l, scale, snps, p.assign, mu.rate, f.cross, f
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
         sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
-        to.pick <- sample(c(1,4), 1)
+        to.pick <- sample(c(1:4), 1)
         class(sim_reads[[to.pick]]) <- list("single.spore")
         return(sim_reads[[to.pick]])
     })
