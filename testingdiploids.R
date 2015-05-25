@@ -113,6 +113,15 @@ MAX
 error_frequency <- length(which((resMax[,20] - resMax[,22])!=0))/dim(resMax)[1]
 error_frequency
 
+observed_hets_freq <- length(which((resMax$p0*resMax$p1)!=0))/dim(resMax)[1]
+observed_hets_freq
+
+actual_freqs <- table(resMax$states_given)/dim(resMax)[1]
+actual_freqs
+
+inferred_freqs <- table(resMax$states_inferred)/dim(resMax)[1]
+inferred_freqs
+
 
 
 
