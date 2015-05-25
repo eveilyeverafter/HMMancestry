@@ -279,15 +279,15 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
             // double g(pow(R,2));
             // double h(R);
             // double ii(1-R-pow(R,2));
-            double a(1-R);
-            double b(R);
+            double a(pow(1-R,2));
+            double b(2*R*(1-R));
             double c(pow(R,2));
-            double d(R);
-            double e(1-R);
-            double f(R);
+            double d(R*(1-R));
+            double e(pow(1-R, 2) + pow(R,2));
+            double f(R*(1-R));
             double g(pow(R,2));
-            double h(R);
-            double ii(1-R);
+            double h(R*(1-R));
+            double ii(pow(1-R,2));
 
             double j(emissions(i,0));
             double k(0.0);
@@ -341,15 +341,15 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
             // double h(R);
             // double ii(1-R-pow(R,2));
             
-            double a(1-R);
-            double b(R);
+            double a(pow(1-R,2));
+            double b(2*R*(1-R));
             double c(pow(R,2));
-            double d(R);
-            double e(1-R);
-            double f(R);
+            double d(R*(1-R));
+            double e(pow(1-R, 2) + pow(R,2));
+            double f(R*(1-R));
             double g(pow(R,2));
-            double h(R);
-            double ii(1-R);
+            double h(R*(1-R));
+            double ii(pow(1-R,2));
 
             double j(emissions(i+1,0));
             double k(0.0);
