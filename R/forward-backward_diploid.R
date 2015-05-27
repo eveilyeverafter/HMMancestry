@@ -56,9 +56,9 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
     forward[1,] <- forward[1,]/scale[1]         #re-scale forward probabilities by their sum to avoid underflow
     for(i in 2:n_snps){
         p <- haldane(displace[i-1]*p.trans)
-        T <- matrix(c(1-p-p^2, p, p^2,
-                      p, 1-2*p, p,
-                      p^2, p, 1-p-p^2),3,3,byrow=TRUE)
+        T <- matrix(c((1-p)^2, 2*p*(1-p), p^2,
+                      p*(1-p), ((1-p)^2+(p^2)), p*(1-p),
+                      p^2, p*(1-p), (1-p)^2),3,3,byrow=TRUE) 
 
         # T <- matrix(c(1-(haldane(displace[i-1]*p.trans)), haldane(displace[i-1])*p.trans, haldane(displace[i-1])*p.trans, 1-(haldane(displace[i-1])*p.trans)), byrow=TRUE, ncol=2)
         e <- diag(emissions[i,])
@@ -71,9 +71,10 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
     backward[n_snps,] = c(1,1,1) #1/scale[n_snps]
     for(i in (n_snps-1):1){
         p <- haldane(displace[i]*p.trans)  
-        T <- matrix(c(1-p-p^2, p, p^2,
-              p, 1-2*p, p,
-              p^2, p, 1-p-p^2),3,3,byrow=TRUE)      
+        
+        T <- matrix(c((1-p)^2, 2*p*(1-p), p^2,
+                      p*(1-p), ((1-p)^2+(p^2)), p*(1-p),
+                      p^2, p*(1-p), (1-p)^2),3,3,byrow=TRUE)      
         # T <- matrix(c(1-(haldane(displace[i]*p.trans)), haldane(displace[i]*p.trans), haldane(displace[i]*p.trans), 1-(haldane(displace[i]*p.trans))), byrow=TRUE, ncol=2)
         e <- diag(emissions[i+1,])
         backward[i,] <- T %*% e %*% backward[i+1,]
