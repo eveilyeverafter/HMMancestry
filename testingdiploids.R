@@ -20,10 +20,19 @@ library(microbenchmark)
 
 
 set.seed(1234567) # For reproducability
-l=1000; scale = 0.01; snps=(1:l);
-n.tetrads <- 100 # number of spores to simulate
+l=1000; scale = 1e-05; snps=(1:l)*7375;
+n.tetrads <- 30 # number of spores to simulate
 res <- sim_tetrad(n.tetrads=n.tetrads, l=l, scale=scale, snps=snps, p.assign=0.95, 
-   mu.rate=0.001, f.cross=0.8, f.convert=0.2, length.conversion=10, coverage=0.25)
+   mu.rate=0, f.cross=1, f.convert=0, length.conversion=10, coverage=0.67)
+
+
+# The average recombination frequency (crossovers / bp) in the simulated dataset is estimated as:
+rec_per_bp <- mean(unlist(lapply(1:n.tetrads, function(x){
+sum(abs(res[[x]][[1]]$states_given[2:l] - res[[x]][[1]]$states_given[1:(l-1)]))/(snps[l]-snps[1])
+})))
+rec_per_bp
+
+
 
 
 # make diploids
@@ -36,6 +45,8 @@ dat <- lapply(1:(n.tetrads/2), function(x){
         p1=res[[x]][[1]]$p1.assign+res[[x+(n.tetrads/2)]][[1]]$p1.assign,
         states_known=true_states1+true_states2))
     })
+
+
 
 
 # dat <- dat[[1]] # pick one
@@ -56,12 +67,13 @@ dat <- lapply(1:(n.tetrads/2), function(x){
 dat <- do.call(rbind, dat)
 colnames(dat) <- c("Sample_ID", "Chr", "Snp", "p0", "p1","states_known")
 
-pars <-   expand.grid(p.assign=seq(from=0.85, to=0.97, length.out=21), 
-                      scale=seq(from=0.0001, to=0.2, length.out=21))
+pars <-   expand.grid(p.assign=seq(from=0.85, to=0.99, length.out=30), 
+                      scale=seq(from=1e-08, to=1e-05, length.out=30))
 
 RES <- mclapply(1:dim(pars)[1], function(y){
     res_c <- ddply(dat, .(Sample_ID, Chr), function(x){
-       # est_fwd_back(snp.dat=x[,1:6], p.assign=pars[y,1], p.trans= pars[y,2])
+      
+       # est_fwd_back_diploid(x, pars[y,1], pars[y,2])      
        c_est_fwd_back_diploid(x[,3], x[,4], x[,5], pars[y,1], pars[y,2])
        })
     # print(dim(res_c))
@@ -84,6 +96,8 @@ RES[[which(LnL==max(LnL))]]
 MAX <- head(RES[[which(LnL==max(LnL))]])[1,1:2]
 # haldane <- function(d){ (1/2)*(1- exp(-2*d))}
 # plot(haldane(c(1:10000)*0.0001),type="l")
+MAX
+
 
 
 LnL <- data.frame(p_assign=pars[,1],scale=pars[,2],LnL)
@@ -100,15 +114,21 @@ contourplot(LnL~p_assign*scale, data=LnL, region=TRUE,cuts=10)
 
 resMax <- ddply(dat, .(Sample_ID, Chr), function(x){
    # est_fwd_back(snp.dat=x[,1:6], p.assign=0.9973333, p.trans= 0.012)
+  # cbind(est_fwd_back_diploid(x, p.assign=as.numeric(MAX[1]), scale=as.numeric(MAX[2])), states_given=x[,6])
+    
    cbind(c_est_fwd_back_diploid(x[,3], x[,4], x[,5], as.numeric(MAX[1]), as.numeric(MAX[2])),states_given=x[,6])
    })
 
 resMax[,c(1,3,4,5,20,22)]
 
 
-
-
 MAX
+
+
+bp_per_50cM <- as.numeric(MAX[2]^-1)/2
+
+# So the rec rate per 50 cM is esimated to be: 
+rec_per_bp * bp_per_50cM
 
 error_frequency <- length(which((resMax[,20] - resMax[,22])!=0))/dim(resMax)[1]
 error_frequency
