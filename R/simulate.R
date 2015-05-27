@@ -20,25 +20,25 @@
 #' # Make a chromosome of L=50 loci for each parent.
 #' make_parents(L=50)
 
-make_parents <- function(L){
-	if(length(L)!=1){
-		stop("The number of loci to simulate needs to be a vector of length 1")
-	}
-	if(!inherits(L, "numeric")){ 
-		stop("The number of loci to simulate needs to be numeric")
-	}
-	if(L!=as.integer(L)){
-		stop("The number of loci to simulate needs to be an integer")
-	}
-	if(L<2){
-		stop("The number of loci to simulate needs to be >= 2")
-	}
+make_parents <- function(snps){
+	# if(length(L)!=1){
+	# 	stop("The number of loci to simulate needs to be a vector of length 1")
+	# }
+	# if(!inherits(L, "numeric")){ 
+	# 	stop("The number of loci to simulate needs to be numeric")
+	# }
+	# if(L!=as.integer(L)){
+	# 	stop("The number of loci to simulate needs to be an integer")
+	# }
+	# if(L<2){
+	# 	stop("The number of loci to simulate needs to be >= 2")
+	# }
 
 	# Code the parent genomes (0 or 1)
-	p1 <- rep(0, L)
-	p2 <- rep(1, L)
+	p1 <- rep(0, length(snps))
+	p2 <- rep(1, length(snps))
 
-	out <- list(snps=1:L, p1=p1, p2=p2)
+	out <- list(snps=snps, p1=p1, p2=p2)
 	class(out) <- c("list", "parent.genomes")
 	return(out)
 
@@ -323,7 +323,7 @@ sim_tetrad <- function(n.tetrads, l, scale, snps, p.assign, mu.rate, f.cross, f.
     out <- lapply(1:n.tetrads, function(Z, ...){
 
         r <- recombine_index(scale, snps)
-        p <- make_parents(l)
+        p <- make_parents(snps)
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
         sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
