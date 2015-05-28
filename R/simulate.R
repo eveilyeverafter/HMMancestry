@@ -383,9 +383,9 @@ sim_tetrad <- function(n.tetrads, l, scale, snps, p.assign, mu.rate, f.cross, f.
 #' # simulate a recombination hotspot between the 100th and 101st snp
 #' l=100; scale = 0.01; snps=1:l
 #' n.spores <- 500 # number of spores to simulate
-spores <- sim_en_masse(n.spores=n.spores, scale=scale, snps=snps, 
-p.assign=.999, mu.rate=0.001, f.cross=0.5, 
-    f.convert=0.5, length.conversion=10, coverage=1)
+#' spores <- sim_en_masse(n.spores=n.spores, scale=scale, snps=snps, 
+#' p.assign=.999, mu.rate=0.001, f.cross=0.5, 
+#'     f.convert=0.5, length.conversion=10, coverage=1)
 
 sim_en_masse <- function(n.spores, scale, snps, p.assign, mu.rate, f.cross, f.convert, length.conversion, coverage){
 
