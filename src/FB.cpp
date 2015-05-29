@@ -38,11 +38,11 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
     for (int i = 0; i <displace.size(); i++)
     {
         displace[i] = snp_locations[i+1] - snp_locations[i];
-        //cout << displace[i] << "\t";
-        //if((i+1) % 10 == 0)
-        //{
+        // cout << displace[i] << "\t";
+        // if((i+1) % 10 == 0)
+        // {
         //    cout << endl;
-        //}
+        // }
     }
 
     // Initial probability (at first snp position)
