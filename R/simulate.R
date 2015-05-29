@@ -85,7 +85,7 @@ recombine_index <- function(scale, snps){
 	# 1==recombination occurs, 0==no recombination
 	out <- sapply(1:length(displacement), function(i) rbinom(n=1, size=1, prob=haldane(displacement[i]*scale)))
 	# out <- rbinom(n=length(displacement), size=1, prob=haldane(displacement[i]*scale))
-	sum(out)/snps[l]
+	# sum(out)/snps[l]
 	return(out)
 }
 
@@ -144,6 +144,10 @@ recombine_index <- function(scale, snps){
 #' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=0, length.conversion=10) # recombine parents
 #' recomb_sim
 
+# cbind(c(r,0), as.data.frame(chromatids.recombined))
+# which(r.index==1)
+
+
 recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
 	if(!inherits(parents, "parent.genomes")){
 		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
@@ -158,15 +162,37 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 	
 	# Recombine chromatids:
 	chromatids.recombined <- chromatids.mutated_snps
+	# type = 1
 	for(i in 1:(l-1)){
 		# Cases where there is a recombination event, pick
 		# two of the four chromatids to recombine:
 
 		if(i %in% which(r.index==1)){
 			# If recobomination with sister chromatids is allowed:
-				# picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
+			# picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
+
 			# If recobomination only with non-sister chromatids is allowed:
-			picked.chromatids <- c(sample(c(1:2), 1), sample(c(3:4), 1))
+			vals <- as.numeric(as.data.frame(chromatids.recombined)[i,])
+
+			picked.chromatids <- c(sample(which(vals==0), 1), sample(which(vals==1), 1))
+	
+			
+			# And since an upstream recombination event changes which strand is
+			# sister vs non-sister, adjust the sampling to reflect it
+			
+			# if(type==1)
+			# {
+			# 	picked.chromatids <- c(sample(c(1,2), 1), sample(c(3,4), 1))
+			# 	type <- 2	
+			# } else
+			# {
+			# 	picked.chromatids <- c(sample(c(1,3), 1), sample(c(2,4), 1))
+			# 	type <- 1
+			# }
+
+
+
+			# print(picked.chromatids)
 
 			# Recombine them:
 			chromatids <- data.frame(one=chromatids.recombined[[picked.chromatids[1]]], 
@@ -331,6 +357,7 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
     out <- lapply(1:n.tetrads, function(Z, ...){
 
         r <- recombine_index(scale, snps)
+        # print(sum(r)/snps[l])
         p <- make_parents(snps)
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
@@ -341,6 +368,19 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
     class(out) <- c("list", "tetrad")
     return(out)
 }
+
+# tmpres <- lapply(1:length(out), function(x){
+# 	tmp <- out[[x]][[1]]$states_given
+
+# 	return(sum(abs(tmp[2:l] - tmp[1:(l-1)]))/(range(snps)[2]-range(snps)[1]))
+# 	})
+
+
+
+
+
+
+
 
 #' @title Simulate random spores en masse
 #' 
