@@ -80,9 +80,12 @@ recombine_index <- function(scale, snps){
 	displacement <- sapply(2:length(snps), function(x){
 		return(snps[x]-snps[x-1])
 		})
+	# displacement <- c(snps[])
+
 	# 1==recombination occurs, 0==no recombination
 	out <- sapply(1:length(displacement), function(i) rbinom(n=1, size=1, prob=haldane(displacement[i]*scale)))
-
+	# out <- rbinom(n=length(displacement), size=1, prob=haldane(displacement[i]*scale))
+	sum(out)/snps[l]
 	return(out)
 }
 
@@ -158,8 +161,13 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 	for(i in 1:(l-1)){
 		# Cases where there is a recombination event, pick
 		# two of the four chromatids to recombine:
+
 		if(i %in% which(r.index==1)){
-			picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
+			# If recobomination with sister chromatids is allowed:
+				# picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
+			# If recobomination only with non-sister chromatids is allowed:
+			picked.chromatids <- c(sample(c(1:2), 1), sample(c(3:4), 1))
+
 			# Recombine them:
 			chromatids <- data.frame(one=chromatids.recombined[[picked.chromatids[1]]], 
 					   two=chromatids.recombined[[picked.chromatids[2]]])
@@ -317,7 +325,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 #' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, scale=scale, snps=snps, p.assign=0.999, 
 #'    mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=10, coverage=2.5)
 
-sim_tetrad <- function(n.tetrads, l, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
+sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
         length.conversion, coverage){
 
     out <- lapply(1:n.tetrads, function(Z, ...){
