@@ -93,10 +93,10 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
         {
             // int i=1;
             // std::cout << displace[i-1] << "\t";
-            double a(1-(haldane(displace[i-1]*p_trans)));
-            double b((haldane(displace[i-1]*p_trans)));
+            double a(1-(haldane(displace[i-1]*p_trans*0.5)));
+            double b((haldane(displace[i-1]*p_trans*0.5)));
             double c(b);
-            double d(1-(haldane(displace[i-1]*p_trans)));
+            double d(1-(haldane(displace[i-1]*p_trans*0.5)));
 
             double e(emissions(i,0)), f(0.0), g(0.0), h(emissions(i,1));
            
@@ -126,10 +126,10 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
             // std::cout << displace[i] << "\t";
             // double a(1-(haldane(displace[i]*p_trans))), b((haldane(displace[i]*p_trans)), c(b), d(1-(haldane(displace[i]*p_trans)));  
            
-            double a(1-(haldane(displace[i-1]*p_trans)));
-            double b(haldane(displace[i-1]*p_trans));
+            double a(1-(haldane(displace[i-1]*p_trans*0.5)));
+            double b(haldane(displace[i-1]*p_trans*0.5));
             double c(b);
-            double d(1-(haldane(displace[i-1]*p_trans)));
+            double d(1-(haldane(displace[i-1]*p_trans*0.5)));
 
 
             double e(emissions(i+1,0)), f(0.0), g(0.0), h(emissions(i+1,1));
@@ -437,6 +437,7 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
     
     return out;
 }
+
 
 /* 
 
