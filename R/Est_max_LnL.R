@@ -46,10 +46,17 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_sca
 
 		lnls <- lapply(points, function(fun){
 			# Call the hmm and get the lnl for each unique individual by chromosome combination
-			res_c <- ddply(dat, .(Ind, Chr), function(x){
-		    	   if(ploidy=="haploid") c_est_fwd_back(x[,3], x[,4], x[,5], fun[1], fun[2])
-		           if(ploidy=="diploid") c_est_fwd_back_diploid(x[,3], x[,4], x[,5], fun[1], fun[2])
+			res_c <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
+		    	   if(ploidy=="haploid")
+		    	   {
+		    	   		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		    	   }
+		           if(ploidy=="diploid")
+		           {
+		           		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		           }
 		           })
+
 		    # Return the lnL for each unique individual and chromosome
 		     res_lnl <- ddply(res_c, .(Ind, Chr), function(z){
 		          return(z$lnL[1])
@@ -102,7 +109,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_sca
 		{
 			if(n==n_iterations)
 			{
-				print(paste("maximum lnl estimate not reached after ", n, "iterations", sep=""))
+				print(paste("maximum lnl estimate not reached after ", n, " iterations", sep=""))
 				break
 			}
 			print(paste("maximum lnl estimate reached after ", n, " iterations", sep=""))
