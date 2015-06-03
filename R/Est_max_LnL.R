@@ -1,7 +1,7 @@
 
 
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_scale=1e-04, tolerance=1e-04, n_iterations=30)
+est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_iterations=30, plot=TRUE)
 {
 	# initial iteration
 	n = 0 
@@ -16,17 +16,85 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_sca
 
 	# dx is the distance between the focal x1 point and points x0 or x2
 	# where x is the p_assign parameter that is to be estimated
-	dx <- 1e-04
+	dx <- 1e-03
 
 	# dy is the distancw between the focal y1 point and points y0 or y2
 	# where y is the scale parameter that is to be estimated
-	dy <- 1e-06
+	dy <- 1e-05
 
 	x <- initial_p_assign; y <- initial_scale # (x,y) is the starting (p_assign, scale) point for the algorithm. 
 
 	# dat is a df with 5 columns: "Ind", "Chr", "Snp", "p0", "p1"
 	colnames(dat) <- c("Ind", "Chr", "Snp", "p0", "p1")
+	dat <- dat[,1:5]
 
+	# If x or y == NULL, do a coarse scale grid to estimate appropriate starting values.
+	# This is either a 5 point 1D grid (if either x or y is NULL) or a 5x5 2D grid if 
+	# both x and y are NULL.
+	if(x=="NULL" || y=="NULL")
+	{
+		if(x=="NULL")
+		{
+			x <- seq(from=0.75, to=0.999, length.out=5)
+		} 
+		if(y=="NULL")
+		{
+			y <- seq(from=1e-06, to=1e-04, length.out=5)
+		}
+		pars <-   expand.grid(x=x, y=y) 			# This is the grid
+    
+	    # Estimate the most likely set of starting values 
+	    coarse_res <- lapply(1:dim(pars)[1], function(yy){
+	        res_c <- ddply(dat, .(Ind, Chr), function(xx){
+	           if(ploidy=="haploid")
+	           {
+	           		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           	}
+	           if(ploidy=="diploid")
+	           {
+	           		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           	}
+	           
+	           })
+	        # Return the lnL for each unique tetrad, spore, & chr
+	        res_lnl <- ddply(res_c, .(Ind, Chr), function(z){
+	          return(z$lnL[1])
+	          })
+	      	return(data.frame(p_assign=pars[yy,1], scale=pars[yy,2], lnL=res_lnl))
+	    })
+
+	    LnL <- unlist(lapply(coarse_res, function(x){
+	        return(sum(x$lnL.V1))
+	      }))
+	    
+	    # The maximum likelihood estimate for p_assign and scale are:     
+	    MAX <- head(coarse_res[[which(LnL==max(LnL))]])[1,1:2]
+		
+		x <- as.numeric(MAX[1])
+		y <- as.numeric(MAX[2])
+
+	    # For visualizing:
+	    if(plot==TRUE)
+	    {
+		    LnL <- data.frame(p_assign=pars[,1],scale=pars[,2],LnL)
+
+		    if(initial_p_assign=="NULL" && initial_scale!="NULL")
+		    {
+	    		print(plot(LnL$p_assign, LnL$LnL, type="b", xlab="p_assign", ylab=paste("LnL given scale = ", y, sep="")))
+		    }
+		    if(initial_p_assign!="NULL" && initial_scale=="NULL")
+		    {
+	    		print(plot(LnL$scale, LnL$LnL, type="b", xlab="scale", ylab=paste("LnL given p_assign = ", x, sep="")))
+		    }
+		    if(initial_p_assign=="NULL" && initial_scale=="NULL")
+		    {
+	    		print(contourplot(LnL~p_assign*scale, data=LnL, region=TRUE, cuts=6))
+		    }
+	    }
+
+	}
+
+	# Perform the hill climbing procedure to fine-tune the parameters
 	repeat{
 		n <- n + 1
 		# print(n)
@@ -85,20 +153,40 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_sca
 		# Adjust the new xy point if needed to their dx (dy) displacements:
 		if(xy[1]<=0.5)
 		{
-			xy[1] = x-dx
+			xy[1] = x-dx*0.5
 		}
 		if(xy[1]>=1)
 		{
-			xy[1] = x+dx
+			xy[1] = x+dx*0.5
 		}
 		if(xy[2]<=0)
 		{
-			xy[2] = y-dy
+			xy[2] = y-dy*0.5
 		}
 		if(xy[2]>=1)
 		{
-			xy[2] = y+dy
+			xy[2] = y+dy*0.5
 		}
+
+		# print(xy)
+
+		# See if the new xy point has a higher lnl than all 6 points. 
+		# If it is greater, accept the move. If it is less than any
+		# one of the 6 points' lnl then move the point half way between x,y
+		# and x+dx, y+dy. 
+		new_xy_lnl <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
+		   if(ploidy=="haploid")
+		   {
+		   		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
+		   }
+		   if(ploidy=="diploid")
+		   {
+		   		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
+		   }
+		   })[1, "lnL"]
+
+		# if(new_xy_lnl > sort(unlist(lnls))[1])
+		# {
 
 		# The Euclidean distance between the old and new point is:
 		diff <- dist(matrix(c(x,y,xy[1],xy[2]),2,2, byrow=TRUE))
@@ -117,7 +205,15 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign=0.99, initial_sca
 		}
 		# Update parameters
 		x <- xy[1]
-		y <- xy[2]
+		y <- xy[2]			
+		
+	
+
+		#else {
+		#	stop("wait")
+		#}
+
+
 	}
 
 	return(data.frame(p_assign_hat=xy[1], scale_hat=xy[2]))
