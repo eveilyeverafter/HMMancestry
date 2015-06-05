@@ -1,7 +1,7 @@
 
 
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_iterations=30, plot=TRUE)
+est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_iterations=30, plot=FALSE)
 {
 	# initial iteration
 	n = 0 
@@ -16,11 +16,11 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 
 	# dx is the distance between the focal x1 point and points x0 or x2
 	# where x is the p_assign parameter that is to be estimated
-	dx <- 1e-03
+	dx <- dx_master <-  1e-04
 
 	# dy is the distancw between the focal y1 point and points y0 or y2
 	# where y is the scale parameter that is to be estimated
-	dy <- 1e-05
+	dy <- dy_master <-  1e-05
 
 	x <- initial_p_assign; y <- initial_scale # (x,y) is the starting (p_assign, scale) point for the algorithm. 
 
@@ -35,7 +35,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	{
 		if(x=="NULL")
 		{
-			x <- seq(from=0.75, to=0.999, length.out=5)
+			x <- seq(from=0.95, to=0.999, length.out=5)
 		} 
 		if(y=="NULL")
 		{
@@ -69,7 +69,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	    
 	    # The maximum likelihood estimate for p_assign and scale are:     
 	    MAX <- head(coarse_res[[which(LnL==max(LnL))]])[1,1:2]
-		
+		print(paste("Coarse estimates are ", MAX[1], " and ", MAX[2], sep=""))
 		x <- as.numeric(MAX[1])
 		y <- as.numeric(MAX[2])
 
@@ -96,7 +96,12 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 
 	# Perform the hill climbing procedure to fine-tune the parameters
 	repeat{
+		if(n_iterations==0) break
 		n <- n + 1
+		print(paste("Processing iteration ", n, " out of a max of ", n_iterations, ".",sep=""))
+		dx <- dx_master/n
+		dy <- dy_master/n
+
 		# print(n)
 		# For each iteration there are 6 (p_assign, scale) points that need estimated lnls
 		# before a jump can be proposed. These points are below. Note that 
@@ -153,27 +158,25 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		# Adjust the new xy point if needed to their dx (dy) displacements:
 		if(xy[1]<=0.5)
 		{
-			xy[1] = x-dx*0.5
+			xy[1] = max(x-1e-06, 0.50001)
 		}
 		if(xy[1]>=1)
 		{
-			xy[1] = x+dx*0.5
+			xy[1] = min(x+1e-06, 0.9999)
 		}
 		if(xy[2]<=0)
 		{
-			xy[2] = y-dy*0.5
+			xy[2] = max(y-1e-06, 0.00001)
 		}
 		if(xy[2]>=1)
 		{
-			xy[2] = y+dy*0.5
+			xy[2] = min(y+1e-06, 0.9999)
 		}
 
-		# print(xy)
+		print(xy)
 
 		# See if the new xy point has a higher lnl than all 6 points. 
-		# If it is greater, accept the move. If it is less than any
-		# one of the 6 points' lnl then move the point half way between x,y
-		# and x+dx, y+dy. 
+		# If it is greater, accept the move. 
 		new_xy_lnl <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
 		   if(ploidy=="haploid")
 		   {
@@ -183,13 +186,34 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		   {
 		   		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
 		   }
-		   })[1, "lnL"]
+		   })
+		# Return the lnL for each unique individual and chromosome
+		res_new_lnl <- ddply(new_xy_lnl, .(Ind, Chr), function(z){
+		     return(z$lnL[1])
+		     })
+		# Sum over the above lnl to get the total lnl for all data
+		new_lnl <- sum(res_new_lnl$V1)
 
-		# if(new_xy_lnl > sort(unlist(lnls))[1])
-		# {
+# Troubleshooting:
+# xs <- c(lapply(points, "[", 1L), xy[1]); ys <- c(lapply(points, "[", 2L), xy[2]); DAT <- data.frame(xs=unlist(xs), ys=unlist(ys), l=as.numeric(c(unlist(lnls), new_lnl))); ggplot(data=DAT, aes(x=xs, y=ys, colour=factor(l))) + geom_point()
 
-		# The Euclidean distance between the old and new point is:
-		diff <- dist(matrix(c(x,y,xy[1],xy[2]),2,2, byrow=TRUE))
+
+		# Is the new xy's lnl > all 6 points? If so, accept it. 
+		if(new_lnl > rev(sort(unlist(lnls)))[1])
+		{
+			# The Euclidean distance between the old and new point is:
+			diff <- dist(matrix(c(x,y,xy[1],xy[2]),2,2, byrow=TRUE))
+		
+		} else {
+			# If one or more of the 6 points have a greater lnl than the 
+			# proposed xy point, then pick the point with the highest lnl 
+			xy <- points[[as.numeric(which(unlist(lnls)==max(unlist(lnls))))]]
+			# print("One of the 6 points has a greater lnl than the proposed point")
+		}
+		
+		# Update parameters
+		x <- xy[1]
+		y <- xy[2]
 
 		# Stop the algorithm if the number of iterations is exceeded or 
 		# the max lnl values do not change much (within tolerance)
@@ -203,19 +227,9 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 			print(paste("maximum lnl estimate reached after ", n, " iterations", sep=""))
 			break
 		}
-		# Update parameters
-		x <- xy[1]
-		y <- xy[2]			
-		
-	
-
-		#else {
-		#	stop("wait")
-		#}
-
-
+			
 	}
 
-	return(data.frame(p_assign_hat=xy[1], scale_hat=xy[2]))
+	return(data.frame(p_assign_hat=xy[1], scale_hat=xy[2],n_iterations=n))
 }
 
