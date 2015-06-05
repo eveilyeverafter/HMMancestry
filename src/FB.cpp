@@ -93,10 +93,10 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
     {
         // int i=1;
         // std::cout << displace[i-1] << "\t";
-        double a(1-(haldane(displace[i-1]*p_trans*0.5)));
-        double b((haldane(displace[i-1]*p_trans*0.5)));
+        double a(1-(haldane(displace[i-1]*p_trans)*0.5));
+        double b((haldane(displace[i-1]*p_trans)*0.5));
         double c(b);
-        double d(1-(haldane(displace[i-1]*p_trans*0.5)));
+        double d(1-(haldane(displace[i-1]*p_trans)*0.5));
         
         double e(emissions(i,0)), f(0.0), g(0.0), h(emissions(i,1));
         
@@ -126,10 +126,10 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
         // std::cout << displace[i] << "\t";
         // double a(1-(haldane(displace[i]*p_trans))), b((haldane(displace[i]*p_trans)), c(b), d(1-(haldane(displace[i]*p_trans)));
         
-        double a(1-(haldane(displace[i]*p_trans*0.5)));
-        double b(haldane(displace[i]*p_trans*0.5));
+        double a(1-(haldane(displace[i]*p_trans)*0.5));
+        double b(haldane(displace[i]*p_trans)*0.5);
         double c(b);
-        double d(1-(haldane(displace[i]*p_trans*0.5)));
+        double d(1-(haldane(displace[i]*p_trans)*0.5));
         
         
         double e(emissions(i+1,0)), f(0.0), g(0.0), h(emissions(i+1,1));
@@ -279,8 +279,8 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
     
     for(int i=1; i<n_snps; i++)
     {
-        double D(displace[i-1]*p_trans*0.5); // mapping distance used for haldane function
-        double R(haldane(D)); // R = recombination rate between the two snps
+        double D(displace[i-1]*p_trans); // mapping distance used for haldane function
+        double R(haldane(D)*0.5); 
         // cout << D << endl;
         
         
@@ -332,9 +332,10 @@ DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, 
     // For the rest:
     for(int i=(n_snps-2); i>=0; i--)
     {
-        double D(displace[i]*p_trans*0.5); // mapping distance used for haldane function
-        double R(haldane(D)); // R = recombination rate between the two snps
+        double D(displace[i]*p_trans); // mapping distance used for haldane function
+        // R = recombination rate between ancestry i to j (or j to i)
         // cout << D << endl;
+        double R(haldane(D)*0.5); 
         
         double a(pow(1-R,2));
         double b(2*R*(1-R));
