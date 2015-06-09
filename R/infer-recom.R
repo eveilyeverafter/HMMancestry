@@ -76,104 +76,129 @@
 #' hist(dplyr::filter(df1, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
 #'  breaks=200, xlab="snp", main="start position of recombination point")
 
-infer_tracts <- function(data){
+infer_tracts <- function(inferred_states_data){
 
-    check_dat(data)
-    # Input is a unique combination of tetrad id and chr id.
-    if(length(unique(data[,1]))!=1){
-        stop("only a unique tetrad id should be passed to infer_tracts")
-    }
-    if(length(unique(data[,2]))!=1){
-        stop("only a unique chromosome id should be passed to infer_tracts")
-    }    
+   
+    if(!("Tetrad" %in% colnames(resMax))){
+        warning("No Tetrad column detected, trying to infer it from Ind column")
+         inferred_states_data$Tetrad <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 1L)))
+    } 
+    if(!("Spore" %in% colnames(resMax))){
+        warning("No Spore column detected, trying to infer it from Ind column")
+         inferred_states_data$Spore <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 2L)))
+    } 
 
-    tetrad_states <- data
-    tetrad <- data$Tetrad[1]
-    chr <- data$Chr[1]
+    data <- dcast(inferred_states_data, Tetrad + Chr + Snp ~ Spore, value.var="states_inferred", fun.aggregate = mean)
 
-    # Get the unique candidate 'regions':
-    regions <- unique_regions(tetrad_states)
+    # data is a data.frame with the following columns
+    colnames(data) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
+    # Order the data
+    data <- data[with(data, order(Tetrad, Chr, Snp)),]
+    # filter out any NaNs
+    data <- data[complete.cases(data), ]
 
-    # Calculate the biases, if present:
-    biases <- check_GC_bias(tetrad_states)
 
-    # Get the actual segregation pattern:
-    text <- get_text(tetrad_states)
+    # check_dat(data)
+    # # Input is a unique combination of tetrad id and chr id.
+    # if(length(unique(data[,1]))!=1){
+    #     stop("only a unique tetrad id should be passed to infer_tracts")
+    # }
+    # if(length(unique(data[,2]))!=1){
+    #     stop("only a unique chromosome id should be passed to infer_tracts")
+    # }    
 
-    # Combine datasets: 
-    CO_summary <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
+    OUT <- ddply(data, .(Tetrad, Chr), function(tetrad_states){
 
-    # Go through the chromosome and call each region as a specific 'tract':
-    out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
-        # print(res)
-        type="NULL"
-        BIAS="NULL"
-        # print(res)
-        res_range <- range(CO_summary$snp[which(CO_summary$type==res)])
-        extent <- 1+(res_range[2] - res_range[1])
-        
-        # Call a 2:2 region if present:
-        if(res>0){
-            type <- "2_2"
-            BIAS <- 2
-        }
-        
-        # If the unique region is not a 2:2 region, then do the following:  
-        if(res<0){
-            pos <- which(unique(CO_summary$type)==res)
+        # tetrad_states <- data
+        tetrad <- tetrad_states$Tetrad[1]
+        chr <- tetrad_states$Chr[1]
+
+        # Get the unique candidate 'regions':
+        regions <- unique_regions(tetrad_states)
+
+        # Calculate the biases, if present:
+        biases <- check_GC_bias(tetrad_states)
+
+        # Get the actual segregation pattern:
+        text <- get_text(tetrad_states)
+
+        # Combine datasets: 
+        CO_summary <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
+
+        # Go through the chromosome and call each region as a specific 'tract':
+        out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
+            # print(res)
+            type="NULL"
+            BIAS="NULL"
+            # print(res)
+            res_range <- range(CO_summary$snp[which(CO_summary$type==res)])
+            extent <- 1+(res_range[2] - res_range[1])
             
-            # If it's a non-2:2 region and it's located on the chromosomal end, it's not internal:
-            if(res==unique(CO_summary$type)[1] | res==rev(unique(CO_summary$type))[1]){
-                internal <- FALSE
-            } else {
-                internal <- TRUE
+            # Call a 2:2 region if present:
+            if(res>0){
+                type <- "2_2"
+                BIAS <- 2
             }
-
-            # If this non 2:2 region is located on the end of the chromosome, call it a GC_tel:
-            if(!internal){                        
-                type <- "GC_tel"
-            }
-            # Is this non 2:2 region located internally?
-            if(internal){
-                # First, identify the snps that flank left and right of res 
-                left <- get_flanking(res_range=res_range, direction="left", df=CO_summary)
-                right <- get_flanking(res_range=res_range, direction="right", df=CO_summary)                
-                # Second determine if there are 2:2 regions immediately flanking this region.
-                if(left$GCbias==2 & right$GCbias==2){
-                        # If so, call either a NCO if flanking regions are identical or a GCwCO if 
-                        # the flanking regions are not identical.
-                        if(as.character(left$text) == as.character(right$text)){
-                            type <- "NCO"
-                        } else {
-                            type <- "COyesGC"
-                        }
-
+            
+            # If the unique region is not a 2:2 region, then do the following:  
+            if(res<0){
+                pos <- which(unique(CO_summary$type)==res)
+                
+                # If it's a non-2:2 region and it's located on the chromosomal end, it's not internal:
+                if(res==unique(CO_summary$type)[1] | res==rev(unique(CO_summary$type))[1]){
+                    internal <- FALSE
+                } else {
+                    internal <- TRUE
                 }
 
-                # Third, if this internal region isn't flanked by two 2:2 regions, then
-                # call it a GC_internal to be called later. 
-                if(left$GCbias!=2 | right$GCbias!=2){
-                    type <- "GC_internal"
+                # If this non 2:2 region is located on the end of the chromosome, call it a GC_tel:
+                if(!internal){                        
+                    type <- "GC_tel"
                 }
+                # Is this non 2:2 region located internally?
+                if(internal){
+                    # First, identify the snps that flank left and right of res 
+                    left <- get_flanking(res_range=res_range, direction="left", df=CO_summary)
+                    right <- get_flanking(res_range=res_range, direction="right", df=CO_summary)                
+                    # Second determine if there are 2:2 regions immediately flanking this region.
+                    if(left$GCbias==2 & right$GCbias==2){
+                            # If so, call either a NCO if flanking regions are identical or a GCwCO if 
+                            # the flanking regions are not identical.
+                            if(as.character(left$text) == as.character(right$text)){
+                                type <- "NCO"
+                            } else {
+                                type <- "COyesGC"
+                            }
 
-            }    
+                    }
 
-            # Last, return the ancestry bias
-            BIAS <- CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'GCbias'][1]
-        }
+                    # Third, if this internal region isn't flanked by two 2:2 regions, then
+                    # call it a GC_internal to be called later. 
+                    if(left$GCbias!=2 | right$GCbias!=2){
+                        type <- "GC_internal"
+                    }
 
-        # Store results as a data.frame
-        return(data.frame(res, tetrad, chr, type, res_range[1],res_range[2], extent,BIAS))
-    }))
-    
-    # Return output of inferred tracts along the chromosome 
-    out <- out[,-1] # Housekeeping
-    colnames(out) <- c("tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias")
-    class(out) <- c("data.frame", "inferred.tracts")
+                }    
 
-    # Call additional tracts:
-    out2 <- infer_COnoGC_tracts(out)
-    return(out2)
+                # Last, return the ancestry bias
+                BIAS <- CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'GCbias'][1]
+            }
+
+            # Store results as a data.frame
+            return(data.frame(res, tetrad, chr, type, res_range[1],res_range[2], extent,BIAS))
+        }))
+        
+        # Return output of inferred tracts along the chromosome 
+        out <- out[,-1] # Housekeeping
+        colnames(out) <- c("tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias")
+        class(out) <- c("data.frame", "inferred.tracts")
+
+        # Call additional tracts:
+        out2 <- infer_COnoGC_tracts(out)
+        return(out2)
+
+    })
+
 }
 
 #' @title Identify recombination points from state sequences
@@ -284,10 +309,10 @@ check_dat <- function(dataframe){
 #    immediately to the left (right) of the focal region.
 get_flanking <- function(res_range, direction, df){
     if(direction=="left"){
-        return(df[which(df$snp==res_range[1]-1),])
+        return(df[which(df$snp==res_range[1])-1,])
     }
     if(direction=="right"){
-        return(df[which(df$snp==res_range[2]+1),])
+        return(df[which(df$snp==res_range[2])+1,])
     }
 }
 
