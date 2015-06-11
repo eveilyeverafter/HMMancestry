@@ -218,14 +218,14 @@ infer_tracts <- function(inferred_states_data){
 #' 
 #' @author Tyler D. Hether 
 #' 
-#' @export id_hotspots
+#' @export id_recombination_events
 #' 
 #' @examples
 #' # Example 1: simple
 #' # A recombination occurred between snp 3 and 4 and between 8 and 9.
 #' statepath <- c(0,0,0,1,1,1,1,1,0,0,0)
-#' id_hotspots(state.vector=statepath)
-#' which(id_hotspots(state.vector=statepath)==1)
+#' id_recombination_events(state.vector=statepath)
+#' which(id_recombination_events(state.vector=statepath)==1)
 #' #
 #' # Example 2: complex
 #' set.seed(1) # For reproducability
@@ -244,7 +244,7 @@ infer_tracts <- function(inferred_states_data){
 #'     })
 #' # ddply through each spore to find recombination points (rpts)
 #' df <- ddply(states1, .(Spore), function(x){
-#'     rpts <- which(id_hotspots(x$states_inferred)==1)
+#'     rpts <- which(id_recombination_events(x$states_inferred)==1)
 #'     npts <- length(rpts)
 #'     return(data.frame(rpts=rpts))
 #'     })
@@ -252,21 +252,28 @@ infer_tracts <- function(inferred_states_data){
 #' hist(df$rpts, breaks=200, xlab="snp", 
 #'     main="recombination frequency")
 
-id_hotspots <- function(state.vector){
-    if(length(state.vector)<=1){
-        stop("At least two snps needed to infer recombination points.")
-    }
-    out <- numeric(length(state.vector))
-    
-    for(i in 2:length(state.vector)){
-        if(state.vector[i]!=0 & state.vector[i]!=1){
-            stop("states need to be 0 or 1 only.")
+id_recombination_events <- function(snps_genotypes_df){ 
+        # snps is a vector containing the snp locations 
+        # genotypes is a vector of corresponding genotypes
+
+        dims <- dim(snps_genotypes_df)[1]
+        if(dims<=1){
+            stop("At least two snps needed to infer recombination points.")
         }
-        if(state.vector[i]!=state.vector[(i-1)]){
-            out[i] <- 1
-        } 
-    }
-    return(out)
+        no0yes1 <- sapply(2:dims, function(i){
+            if(snps_genotypes_df[i,2]!=snps_genotypes_df[i-1,2]){
+                return(1)
+            } else 
+            {
+                return(0)
+            }
+            })
+        midpoints <- sapply(2:dims, function(i){
+            return(mean(c(snps_genotypes_df[i,1], snps_genotypes_df[i-1,1])))
+        })
+    
+        return(data.frame(midpoints=midpoints, no0yes1=no0yes1))
+
 }
 
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
