@@ -1,4 +1,4 @@
-Package hmmspore
+Package hmmspore (dev)
 =============
 
 ATTN: hmmspore is in the middle of a complete overhaul as we optimize code for speed and improve functionality (e.g., added support for non-yeast species and diploids). For now please consider this package "experimental". 
