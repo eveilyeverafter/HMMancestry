@@ -10,7 +10,7 @@ ATTN: fbgenotyper is in the middle of a complete overhaul as we optimize code fo
 
 The package fbgenotyper was designed to infer recombination breakpoints, hotspots, and coldspots 
 in high-throughput, next-generation sequence data, even when sequencing coverage is relatively 
-low. Currently, fbgenotyper handles two types of data, both from yeast matings:
+low. Currently, fbgenotyper handles three types of data:
 
 1) Haploid yeast data where each of four spores of a tetrad are genotyped.
 * Low throughput for the experimenter since it requires tetrad dissection.
@@ -31,6 +31,9 @@ extracted and sequenced using which ever method the experimenter desires. Read c
 individually barcoded and sequenced spore are estimated from the parental snps using a mapping 
 program like bowtie2 or bwa. These read counts are used in fbgenotyper to estimate recombination 
 hotspots, average length of a gene conversion tracts, and more.
+
+3) Diploid data with read counts for alternative snps. This is the newest part of fbgenotyper and is the part that is under the most development currently. Stay tuned for updates. 
+
 
 
 To build:
