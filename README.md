@@ -1,7 +1,7 @@
 Package fbgenotyper (dev)
 =============
 
-![ScreenShot](/FBgenotyper2.pdf)
+![alt tag](/FBgenotyper2.pdf)
 
 
 
