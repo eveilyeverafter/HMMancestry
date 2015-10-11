@@ -3,11 +3,16 @@
 
 #'@export
 c_est_fwd_back <- function(snp_locations, k0, k1, p_assign, p_trans) {
-    .Call('hmmspore_c_est_fwd_back', PACKAGE = 'hmmspore', snp_locations, k0, k1, p_assign, p_trans)
+    .Call('fbgenotyper_c_est_fwd_back', PACKAGE = 'fbgenotyper', snp_locations, k0, k1, p_assign, p_trans)
+}
+
+#'@export
+c_est_fwd_back_diploid <- function(snp_locations, k0, k1, p_assign, p_trans) {
+    .Call('fbgenotyper_c_est_fwd_back_diploid', PACKAGE = 'fbgenotyper', snp_locations, k0, k1, p_assign, p_trans)
 }
 
 #'@export
 lapply1 <- function(input, f) {
-    .Call('hmmspore_lapply1', PACKAGE = 'hmmspore', input, f)
+    .Call('fbgenotyper_lapply1', PACKAGE = 'fbgenotyper', input, f)
 }
 

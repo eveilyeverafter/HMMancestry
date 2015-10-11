@@ -1,7 +1,7 @@
 
 
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_iterations=30, plot=FALSE)
+est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_coarse_steps=5, n_iterations=30, plot=FALSE)
 {
 	# initial iteration
 	n = 0 
@@ -35,11 +35,11 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	{
 		if(x=="NULL")
 		{
-			x <- seq(from=0.95, to=0.999, length.out=5)
+			x <- seq(from=0.95, to=0.999, length.out=n_coarse_steps)
 		} 
 		if(y=="NULL")
 		{
-			y <- seq(from=1e-06, to=1e-04, length.out=5)
+			y <- seq(from=1e-06, to=1e-04, length.out=n_coarse_steps)
 		}
 		pars <-   expand.grid(x=x, y=y) 			# This is the grid
     
@@ -173,7 +173,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 			xy[2] = min(y+1e-06, 0.9999)
 		}
 
-		print(xy)
+		# print(xy)
 
 		# See if the new xy point has a higher lnl than all 6 points. 
 		# If it is greater, accept the move. 

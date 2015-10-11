@@ -1,2 +1,2 @@
 library('testthat')
-test_check('hmmspore')
+test_check('fbgenotyper')

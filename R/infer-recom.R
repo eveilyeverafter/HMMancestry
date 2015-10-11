@@ -255,6 +255,9 @@ infer_tracts <- function(inferred_states_data){
 id_recombination_events <- function(snps_genotypes_df){ 
         # snps is a vector containing the snp locations 
         # genotypes is a vector of corresponding genotypes
+        # colnames(snps_genotypes_df) <- c("snp", "genotype")
+        # snps_genotypes_df <- snps_genotypes_df[with(snps_genotypes_df, order(snp)),]
+
 
         dims <- dim(snps_genotypes_df)[1]
         if(dims<=1){

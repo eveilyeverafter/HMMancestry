@@ -16,9 +16,9 @@ build:
 	R CMD build .
 
 check: build
-	R CMD check --no-manual `ls -1tr hmmspore*gz | tail -n1`
-	@rm -f `ls -1tr hmmspore*gz | tail -n1`
-	@rm -rf hmmspore.Rcheck
+	R CMD check --no-manual `ls -1tr fbgenotyper*gz | tail -n1`
+	@rm -f `ls -1tr fbgenotyper*gz | tail -n1`
+	@rm -rf fbgenotyper.Rcheck
 
 # No real targets!
 .PHONY: all test document install

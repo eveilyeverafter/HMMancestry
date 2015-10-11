@@ -1,4 +1,4 @@
-Package: hmmspore
+Package: fbgenotyper
 Type: Package
 Title: Estimates recombination crossover, non-crossover, and gene conversion events from yeast or
 	simulated data.

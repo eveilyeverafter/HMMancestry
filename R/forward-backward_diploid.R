@@ -44,8 +44,12 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
     n_i <- k0+k1
     p0 <- choose(n_i,k0)*(p.assign^k0)*((1-p.assign)^(n_i-k0))
     ph <- choose(n_i, k0)*(0.5^k0)*(0.5^k1)
-    p1 <- choose(n_i,k1)*(p.assign^k1)*((1-p.assign)^(n_i-k1))    
+    p1 <- choose(n_i,k1)*(p.assign^k1)*((1-p.assign)^(n_i-k1))  
+    # sum_scale <- p0+ph+p1  
     emissions <- t(rbind(p0, ph, p1))
+    # emissions <- t(rbind(p0/sum_scale, ph/sum_scale, p1/sum_scale))
+
+
     #
     # 3) calculate pi[k] (vector of state probabilities at first position -- here use 1/k for each)
     #
@@ -58,7 +62,7 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
         p <- haldane(displace[i-1]*p.trans)
         T <- matrix(c((1-p)^2, 2*p*(1-p), p^2,
                       p*(1-p), ((1-p)^2+(p^2)), p*(1-p),
-                      p^2, p*(1-p), (1-p)^2),3,3,byrow=TRUE) 
+                      p^2, 2*p*(1-p), (1-p)^2),3,3,byrow=TRUE) 
 
         # T <- matrix(c(1-(haldane(displace[i-1]*p.trans)), haldane(displace[i-1])*p.trans, haldane(displace[i-1])*p.trans, 1-(haldane(displace[i-1])*p.trans)), byrow=TRUE, ncol=2)
         e <- diag(emissions[i,])
@@ -74,7 +78,7 @@ est_fwd_back_diploid <- function(diploid.dat, p.assign, scale){
         
         T <- matrix(c((1-p)^2, 2*p*(1-p), p^2,
                       p*(1-p), ((1-p)^2+(p^2)), p*(1-p),
-                      p^2, p*(1-p), (1-p)^2),3,3,byrow=TRUE)      
+                      p^2, 2*p*(1-p), (1-p)^2),3,3,byrow=TRUE)      
         # T <- matrix(c(1-(haldane(displace[i]*p.trans)), haldane(displace[i]*p.trans), haldane(displace[i]*p.trans), 1-(haldane(displace[i]*p.trans))), byrow=TRUE, ncol=2)
         e <- diag(emissions[i+1,])
         backward[i,] <- T %*% e %*% backward[i+1,]
