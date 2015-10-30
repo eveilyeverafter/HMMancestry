@@ -47,19 +47,23 @@
 #' @export infer_tracts
 #' 
 #' @examples
-#' # Example 1: 1 tetrad
-#' set.seed(1) # For reproducability
-#' l <- 1000 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-#' p <- make_parents(l) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-#' df <- ddply(states, .(Tetrad, Chr), infer_tracts)
-#' hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
-#'  breaks=200, xlab="snp", main="start position of recombination point")
-#' #
+# Example 1: 1 tetrad
+set.seed(1) # For reproducability
+l <- 1000 # number of loci to simulate
+rec <- 0.01 # recombination rate between each snp
+
+r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
+p_a <- .999 # probability of correct sequencing assignment
+p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
+
+threshold_size <- 1e4
+
+df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e2)
+hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
+ breaks=200, xlab="snp", main="start position of recombination point")
+#
 #' # Example 2: 100 simulated tetrads with a recombination hotspot
 #' set.seed(1) # For reproducability
 #' rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
@@ -76,19 +80,19 @@
 #' hist(dplyr::filter(df1, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
 #'  breaks=200, xlab="snp", main="start position of recombination point")
 
-infer_tracts <- function(inferred_states_data){
-
+infer_tracts <- function(data, threshold_size=1e4){
+    #! require(reshape2)
    
-    if(!("Tetrad" %in% colnames(resMax))){
-        warning("No Tetrad column detected, trying to infer it from Ind column")
-         inferred_states_data$Tetrad <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 1L)))
+    if(!("Tetrad" %in% colnames(data))){
+        stop("No Tetrad column detected")
+         # inferred_states_data$Tetrad <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 1L)))
     } 
-    if(!("Spore" %in% colnames(resMax))){
-        warning("No Spore column detected, trying to infer it from Ind column")
-         inferred_states_data$Spore <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 2L)))
-    } 
+    # if(!("Spore" %in% colnames(inferred_states_data))){
+    #     warning("No Spore column detected, trying to infer it from Ind column")
+    #      inferred_states_data$Spore <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 2L)))
+    # } 
 
-    data <- dcast(inferred_states_data, Tetrad + Chr + Snp ~ Spore, value.var="states_inferred", fun.aggregate = mean)
+    #! data <- dcast(inferred_states_data, Tetrad + Chr + Snp ~ Spore, value.var="states_inferred", fun.aggregate = mean)
 
     # data is a data.frame with the following columns
     colnames(data) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
@@ -107,7 +111,7 @@ infer_tracts <- function(inferred_states_data){
     #     stop("only a unique chromosome id should be passed to infer_tracts")
     # }    
 
-    OUT <- ddply(data, .(Tetrad, Chr), function(tetrad_states){
+    OUT <- ddply(data, .(Tetrad, Chr), function(tetrad_states, ...){
 
         # tetrad_states <- data
         tetrad <- tetrad_states$Tetrad[1]
@@ -125,6 +129,8 @@ infer_tracts <- function(inferred_states_data){
         # Combine datasets: 
         CO_summary <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
 
+
+        # unique(CO_summary$type)
         # Go through the chromosome and call each region as a specific 'tract':
         out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
             # print(res)
@@ -133,72 +139,162 @@ infer_tracts <- function(inferred_states_data){
             # print(res)
             res_range <- range(CO_summary$snp[which(CO_summary$type==res)])
             extent <- 1+(res_range[2] - res_range[1])
+            # Get the index position for this region.
+            pos <- which(unique(CO_summary$type)==res)
             
-            # Call a 2:2 region if present:
-            if(res>0){
+            # Is this region smaller than the threshold size?
+            if(extent<threshold_size){
+                smaller_than_threshold <- TRUE
+            } else {
+                smaller_than_threshold <- FALSE
+            }
+
+            # If the region is greater than the threshold *and* has a 2:2 pattern, 
+            # call it a "2_2" region. Note that COnoGC regions will be checked
+            # for at the end. Note that 2:2 tracts that are smaller than the 
+            # threshold size will be considered non-2:2 (GC) tracts for the rest of the
+            # algorithm.
+            if(!smaller_than_threshold & res>0){
                 type <- "2_2"
+                # Return the degree of bias
                 BIAS <- 2
             }
-            
-            # If the unique region is not a 2:2 region, then do the following:  
-            if(res<0){
-                pos <- which(unique(CO_summary$type)==res)
-                
-                # If it's a non-2:2 region and it's located on the chromosomal end, it's not internal:
+
+            # if the region is smaller than the threshold *or* it was previously considered
+            # a non 2:2 tract, do the following: 
+            if(res < 0 | smaller_than_threshold){
+                # Is this 'non 2:2' (GC) region on a chromosomal end? 
+                # If so, classify it as 'GC_tel'. If not, temporarily call it 'internal'.
                 if(res==unique(CO_summary$type)[1] | res==rev(unique(CO_summary$type))[1]){
-                    internal <- FALSE
-                } else {
-                    internal <- TRUE
-                }
-
-                # If this non 2:2 region is located on the end of the chromosome, call it a GC_tel:
-                if(!internal){                        
+                    # This block is executed if the region *is* on the ends:
+                    # internal <- FALSE
                     type <- "GC_tel"
-                }
-                # Is this non 2:2 region located internally?
-                if(internal){
-                    # First, identify the snps that flank left and right of res 
-                    left <- get_flanking(res_range=res_range, direction="left", df=CO_summary)
-                    right <- get_flanking(res_range=res_range, direction="right", df=CO_summary)                
-                    # Second determine if there are 2:2 regions immediately flanking this region.
-                    if(left$GCbias==2 & right$GCbias==2){
-                            # If so, call either a NCO if flanking regions are identical or a GCwCO if 
-                            # the flanking regions are not identical.
-                            if(as.character(left$text) == as.character(right$text)){
-                                type <- "NCO"
-                            } else {
-                                type <- "COyesGC"
-                            }
-
-                    }
-
-                    # Third, if this internal region isn't flanked by two 2:2 regions, then
-                    # call it a GC_internal to be called later. 
-                    if(left$GCbias!=2 | right$GCbias!=2){
+                } else {
+                    # internal <- TRUE
+                    # If this 'non 2:2' (GC) region is not internal, identify whether it
+                    # is part of a NCO event or part of a CO event. To do this, first identify
+                    # the left and right flanking regions, their extent, and whether they have 
+                    # been classified as "GC" or "nonGC". "GC" is anything region that is 
+                    # non 2:2 or is 2:2 but smaller than the threshold_size.
+                    left <- get_flanking(res_range=res_range, direction="left", df=CO_summary, threshold_size=threshold_size)
+                    right <- get_flanking(res_range=res_range, direction="right", df=CO_summary, threshold_size=threshold_size)                
+                    
+                    # Second, if either of the flanking regions are GC regions (non 2:2 or 2:2 <
+                    # threshold_size) then temporarily call it a GC_internal (to be reclassified
+                    # later). If both of the flanking regions are "nonGC" then determine NCO (identical
+                    # flanking pattern) or COyesGC (i.e., different flanking pattern)
+                    if(left$type2=="GC" | right$type2=="GC"){
                         type <- "GC_internal"
+                    } else {
+                        if(as.character(left$text) == as.character(right$text)){
+                            type <- "NCO"
+                        } else {
+                            type <- "COyesGC"
+                        }
                     }
-
-                }    
-
-                # Last, return the ancestry bias
+                }
+                # Return the degree of BIAS
                 BIAS <- CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'GCbias'][1]
             }
 
             # Store results as a data.frame
-            return(data.frame(res, tetrad, chr, type, res_range[1],res_range[2], extent,BIAS))
+            return(data.frame(res, tetrad, chr, type, res_range[1],res_range[2], extent,BIAS,
+                pattern=as.character(CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'text'][1])))
         }))
         
         # Return output of inferred tracts along the chromosome 
-        out <- out[,-1] # Housekeeping
-        colnames(out) <- c("tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias")
+        # out <- out[,-1] # Housekeeping
+        colnames(out) <- c("region", "tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias", "pattern")
         class(out) <- c("data.frame", "inferred.tracts")
 
-        # Call additional tracts:
+        # Reclassifying temporary tracts:
+
+        # This identifies the approx location of COs without a detected gene conversion tract
+        # print("Screening for COs without GCs...")
         out2 <- infer_COnoGC_tracts(out)
-        return(out2)
 
+        # Now merge GC_internal tracts, if appropriate:
+        # print("Merging internal GC tracts...")
+        
+        i=0
+        out3 <- NULL
+        location_of_2_2s <- which(out2$type[1:dim(out2)[1]]=="2_2")
+        while(i<dim(out2)[1]){
+            i <- i + 1
+            # print(i)
+            # If region i is GC of some kind...
+            if(out2$type[i]!="2_2"){
+                # ...and there is another 2:2 tract 3' along the chromosome...
+                if(length(which(location_of_2_2s>i))>0){
+                    # ...find the last_tract_to_merge index...
+                    last_tract_to_merge <- location_of_2_2s[location_of_2_2s>i][1]-1
+                    # ...and merge the ith row with the last_tract_to_merge-th row. If 
+                    # one of the GC tracts is labeled GC_tel, convert the whole tract
+                    # to a GC_tel. 
+                    if("GC_tel" %in% out2$type[i:last_tract_to_merge]){
+                         out3 <- rbind(out3, data.frame(region=out2$region[i], 
+                                tetrad=out2$tetrad[i], 
+                                chr=out2$chr[i],
+                                type="GC_tel",
+                                start_snp=out2$start_snp[i], 
+                                end_snp=out2$end_snp[last_tract_to_merge])) 
+                         # And reset the counter
+                         i <- last_tract_to_merge          
+                    } else {
+                        # If, however, all GC tracts in this group were internal then
+                        # determine if it was a NCO or a COyesGC
+                        if(as.character(out2$pattern[i-1])==as.character(out2$pattern[last_tract_to_merge+1])){
+                            # if the flanking 2:2 patterns (>the threshold) are the same
+                            # then call the whole, merged region an NCO...
+                             out3 <- rbind(out3, data.frame(region=out2$region[i], 
+                                    tetrad=out2$tetrad[i], 
+                                    chr=out2$chr[i],
+                                    type="NCO",
+                                    start_snp=out2$start_snp[i], 
+                                    end_snp=out2$end_snp[last_tract_to_merge])) 
+                        } else {
+                            # ...otherwise, call the whole region a COyesGC
+                             out3 <- rbind(out3, data.frame(region=out2$region[i], 
+                                    tetrad=out2$tetrad[i], 
+                                    chr=out2$chr[i],
+                                    type="COyesGC",
+                                    start_snp=out2$start_snp[i], 
+                                    end_snp=out2$end_snp[last_tract_to_merge])) 
+                        }
+                        # And reset the counter
+                        i <- last_tract_to_merge   
+                    }
+                }  else {
+                    # ...but if there wasn't another 2:2 tract along the chromosome
+                    # then the remainder of the regions are of type GC_tel
+                    out3 <- rbind(out3, data.frame(region=out2$region[i], 
+                           tetrad=out2$tetrad[i], 
+                           chr=out2$chr[i],
+                           type="GC_tel",
+                           start_snp=out2$start_snp[i], 
+                           end_snp=out2$end_snp[dim(out2)[1]])) 
+                    # And reset the counter
+                    i <- dim(out2)[1]  
+                }
+            } else {
+               # If the region is a 2:2 pattern then just return the row
+                out3 <- rbind(out3, data.frame(region=out2$region[i], 
+                       tetrad=out2$tetrad[i], 
+                       chr=out2$chr[i],
+                       type="2_2",
+                       start_snp=out2$start_snp[i], 
+                       end_snp=out2$end_snp[i]))                
+            }
+        }
+
+        out3$extent <- (out3$end_snp - out3$start_snp) + 1
+
+        return(out3)
     })
-
+   
+    # Housekeeping: 
+    OUT <- OUT[,-c(3,4,5)]
+    return(OUT)
 }
 
 #' @title Identify recombination points from state sequences
@@ -315,15 +411,30 @@ check_dat <- function(dataframe){
     }   
 }
 
-# If direction is left (right), return the snp data of the unique region 
+# If direction is left (right), return the snp data and extent of the unique region 
 #    immediately to the left (right) of the focal region.
-get_flanking <- function(res_range, direction, df){
+get_flanking <- function(res_range, direction, df, threshold_size){
     if(direction=="left"){
-        return(df[which(df$snp==res_range[1])-1,])
+        tmp <- df[which(df$snp==res_range[1])-1,]
     }
     if(direction=="right"){
-        return(df[which(df$snp==res_range[2])+1,])
+        tmp <- df[which(df$snp==res_range[2])+1,]
     }
+        flank_range <- range(CO_summary$snp[which(CO_summary$type==tmp$type)])
+        flank_extent <- 1+(flank_range[2] - flank_range[1])
+    if(tmp$GCbias==2){
+        if(flank_extent<threshold_size){
+            type2 <- "GC"  
+        } else {
+            type2 <- "nonGC"
+        }
+    } else {
+        type2 <- "GC"
+    }
+
+
+
+    return(cbind(tmp, flank_extent, type2))
 }
 
 # A function for converting recombine object to tetrad.states
@@ -375,7 +486,7 @@ check_tie <- function(x){
 }
 
 # Estimate crossover and gene conversion events
-unique_regions <- function(data){
+unique_regions <- function(data, threshold_size){
 
     # Initialize values
     sums <- apply(data[,4:7],1,sum)
@@ -461,7 +572,7 @@ infer_COnoGC_tracts <- function(inferred_tracts){
                     # If so, return a COnoGC entry
                     res_range <- c(inferred_tracts[i, 'end_snp'],inferred_tracts[(i+1), 'start_snp'])
                     pt <- mean(res_range)
-                    return(data.frame(tetrad=tetrad, chr=chr,type="COnoGC", start_snp=pt, 
+                    return(data.frame(region=0, tetrad=tetrad, chr=chr,type="COnoGC", start_snp=pt, 
                         end_snp=pt, extent=res_range[2]-res_range[1], bias=NA))
                 }
             }
@@ -477,6 +588,21 @@ infer_COnoGC_tracts <- function(inferred_tracts){
     return(out2)
 
 }
+
+
+# merge_tracts <- function(inferred_tracts){
+#     if(!inherits(inferred_tracts, "inferred.tracts")){
+#         stop(paste("Object 'inferred_tracts' needs to be of class 'inferred.tracts'.", sep=""))
+#     }
+#     tetrad <- inferred_tracts$tetrad[1]
+#     chr <- inferred_tracts$chr[1]
+
+
+
+# }
+
+
+
 
 # Checks if object i is of class tetrad.states or a list of 4 elements, each of 
 #    class forward.backward
