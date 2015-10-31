@@ -55,12 +55,22 @@ rec <- 0.01 # recombination rate between each snp
 r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
 p_a <- .999 # probability of correct sequencing assignment
 p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=0) # recombine parents
 states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
 
-threshold_size <- 1e4
 
-df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e2)
+infer_tracts(data=states, threshold_size=1e4)
+
+# threshold_size <- 1e3
+
+
+
+
+
+df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
+
+
+
 hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
  breaks=200, xlab="snp", main="start position of recombination point")
 #
@@ -80,59 +90,26 @@ hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp
 #' hist(dplyr::filter(df1, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
 #'  breaks=200, xlab="snp", main="start position of recombination point")
 
-infer_tracts <- function(data, threshold_size=1e4){
-    #! require(reshape2)
-   
-    if(!("Tetrad" %in% colnames(data))){
-        stop("No Tetrad column detected")
-         # inferred_states_data$Tetrad <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 1L)))
-    } 
-    # if(!("Spore" %in% colnames(inferred_states_data))){
-    #     warning("No Spore column detected, trying to infer it from Ind column")
-    #      inferred_states_data$Spore <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 2L)))
-    # } 
-
-    #! data <- dcast(inferred_states_data, Tetrad + Chr + Snp ~ Spore, value.var="states_inferred", fun.aggregate = mean)
-
-    # data is a data.frame with the following columns
-    colnames(data) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
-    # Order the data
-    data <- data[with(data, order(Tetrad, Chr, Snp)),]
-    # filter out any NaNs
-    data <- data[complete.cases(data), ]
 
 
-    # check_dat(data)
-    # # Input is a unique combination of tetrad id and chr id.
-    # if(length(unique(data[,1]))!=1){
-    #     stop("only a unique tetrad id should be passed to infer_tracts")
-    # }
-    # if(length(unique(data[,2]))!=1){
-    #     stop("only a unique chromosome id should be passed to infer_tracts")
-    # }    
 
-    OUT <- ddply(data, .(Tetrad, Chr), function(tetrad_states, ...){
+infer_tracts <- function(data, threshold_size=1e2){
 
-        # tetrad_states <- data
-        tetrad <- tetrad_states$Tetrad[1]
-        chr <- tetrad_states$Chr[1]
+    # Check and sort the data
+    checked_data <- prep_infer_tracts_data(data) 
 
-        # Get the unique candidate 'regions':
-        regions <- unique_regions(tetrad_states)
+    # identify regions in each tetrad and each chromosome
+    CO_summary <- summarize_regions(checked_data)
+    # Now do the algorithm (both parts)
+    # What are the unique regions?
+    regions <- unique(CO_summary$type)
 
-        # Calculate the biases, if present:
-        biases <- check_GC_bias(tetrad_states)
+    # OUT <- ddply(sum_regions, .(Tetrad, Chr), function(CO_summary){
 
-        # Get the actual segregation pattern:
-        text <- get_text(tetrad_states)
-
-        # Combine datasets: 
-        CO_summary <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
-
-
-        # unique(CO_summary$type)
+        # CO_summary <- x
         # Go through the chromosome and call each region as a specific 'tract':
-        out <-   do.call(rbind, lapply(unique(CO_summary$type), function(res, ...){
+        outlist <- lapply(regions, function(res, ...){
+        
             # print(res)
             type="NULL"
             BIAS="NULL"
@@ -142,6 +119,7 @@ infer_tracts <- function(data, threshold_size=1e4){
             # Get the index position for this region.
             pos <- which(unique(CO_summary$type)==res)
             
+
             # Is this region smaller than the threshold size?
             if(extent<threshold_size){
                 smaller_than_threshold <- TRUE
@@ -198,14 +176,25 @@ infer_tracts <- function(data, threshold_size=1e4){
             }
 
             # Store results as a data.frame
-            return(data.frame(res, tetrad, chr, type, res_range[1],res_range[2], extent,BIAS,
-                pattern=as.character(CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'text'][1])))
-        }))
+            return(data.frame(res, tetrad=CO_summary$Tetrad[1], chr=CO_summary$Chr[1], type, 
+                res_range[1],res_range[2], extent,BIAS, pattern=as.character(CO_summary[CO_summary$type==unique(CO_summary$type)[pos],'text'][1])))
+        })
         
+
+        out <- do.call(rbind, outlist)
+
+
+
+
         # Return output of inferred tracts along the chromosome 
         # out <- out[,-1] # Housekeeping
         colnames(out) <- c("region", "tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias", "pattern")
         class(out) <- c("data.frame", "inferred.tracts")
+
+
+    # return(out)
+    # })
+
 
         # Reclassifying temporary tracts:
 
@@ -289,12 +278,14 @@ infer_tracts <- function(data, threshold_size=1e4){
 
         out3$extent <- (out3$end_snp - out3$start_snp) + 1
 
+        # Housekeeping:
+        out3 <- out3[,-c(1,2,3)]
         return(out3)
-    })
+    # })
    
     # Housekeeping: 
-    OUT <- OUT[,-c(3,4,5)]
-    return(OUT)
+    # OUT <- OUT[,-c(3,4,5)]
+    # return(OUT)
 }
 
 #' @title Identify recombination points from state sequences
@@ -420,7 +411,7 @@ get_flanking <- function(res_range, direction, df, threshold_size){
     if(direction=="right"){
         tmp <- df[which(df$snp==res_range[2])+1,]
     }
-        flank_range <- range(CO_summary$snp[which(CO_summary$type==tmp$type)])
+        flank_range <- range(df$snp[which(df$type==tmp$type)])
         flank_extent <- 1+(flank_range[2] - flank_range[1])
     if(tmp$GCbias==2){
         if(flank_extent<threshold_size){
@@ -601,6 +592,38 @@ infer_COnoGC_tracts <- function(inferred_tracts){
 
 # }
 
+# Internal functiont that checks the data format and sort it if necessary.
+prep_infer_tracts_data <- function(data){
+    if(!("Tetrad" %in% colnames(data))){
+        stop("No Tetrad column detected")
+         # inferred_states_data$Tetrad <- as.numeric(unlist(lapply(strsplit(inferred_states_data$Ind, split="_"), "[", 1L)))
+    } 
+    # data is a data.frame with the following columns
+    colnames(data) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
+    # Order the data
+    data2 <- data[with(data, order(Tetrad, Chr, Snp)),]
+    # filter out any NaNs
+    data2 <- data[complete.cases(data), ]
+    return(data2)
+}
+# Internal function to call unique regions for each tetrad and each chromosome
+summarize_regions <- function(dat){
+    out <- ddply(dat, .(Tetrad, Chr), function(tetrad_states){
+        # tetrad_states <- data
+        tetrad <- tetrad_states$Tetrad[1]
+        chr <- tetrad_states$Chr[1]
+        # Get the unique candidate 'regions':
+        regions <- unique_regions(tetrad_states)
+        # Calculate the biases, if present:
+        biases <- check_GC_bias(tetrad_states)
+        # Get the actual segregation pattern:
+        text <- get_text(tetrad_states)
+        # Combine datasets: 
+        to_return <- data.frame(snp=regions$tetrad_states[,'Snp'], type=regions$type, GCbias=biases, text=text)
+        return(to_return)
+    })
+    return(out)
+}
 
 
 
@@ -622,3 +645,7 @@ fwd_back_to_tetrad_states <- function(fb_data){
     class(trim1) <- c("data.frame", "tetrad.states")
     return(trim1)
 }
+
+
+
+
