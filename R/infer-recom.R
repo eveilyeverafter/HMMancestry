@@ -6,39 +6,19 @@
 #' @param data a \code{states.matrix} or \code{forward.backward} object inherited from either 
 #' \code{recombine_to_tetrad_states} or \code{estimate_anc_fwd_back} 
 #' 
-#' @param tetrad (Optional) A numeric or character specifying the tetrad ID
-#' 
-#' @param chr (Optional) A numeric or character specifying the chromosome ID if class \code{tetrad.states}. 
-#' If \code{data} is of class \code{forward.backward} than \code{chr} will be provided.
-#' 
-#' @details (to do)
+#' @param threshold_size numeric. If a 2:2 tract is smaller than this value then
+#'    it is considered a (part of a) gene converson tract. 
 #' 
 #' @return A data.frame containing the following columns:
 #' \describe{
 #'      \item{tetrad}{The tetrad ID (default == 1)}
 #'      \item{chr}{The chromosome ID (default == "I")}
-#'      \item{type}{The type of inferred tract:} 
-#'      \describe{
-#'          \item{1. 2_2}{a tract with a 2:2 ratio}
-#'          \item{2. GC_tel}{a gene conversion tract located at a chromosomal end}
-#'          \item{3. GC_internal}{a gene conversion tract with at least one flanking tract also a gene conversion tract}
-#'          \item{4. COnoGC}{indicates where a crossover event occurred but without a detectable gene conversion tract}
-#'          \item{5. COyesGC}{a gene conversion tract associated with a crossover event}
-#'          \item{6. NCO}{a gene conversion tract without an associated crossover event}
-#'      }
-#'      \item{start_snp}{numeric value of the first snp in a given tract}
-#'      \item{end_snp}{numeric value of the last snp in a given tract}
-#'      \item{extent}{numeric value of the range of snps (inclusive) in a given tract}
-#'      \item{bias}{integer specifying the gene conversion bias where:}
-#'      \describe{
-#'          \item{a. 0}{a 4:0 segregation (all of parent 0 type)}
-#'          \item{b. 1}{a 3:1 segregation}
-#'          \item{c. 2}{a 2:2 no bias found}
-#'          \item{d. 3}{a 1:3 segregation}
-#'          \item{e. 4}{a 0:4 segregation (all of parent 1 type)}
-#'          \item{f. NA}{(COnoGC only) bias information is not applicable}  
+#'      \item{type}{The type of inferred tract:}
+#'      \item{start_snp}{The starting snp position in base pairs}
+#'      \item{end_snp}{The ending snp position in base pairs}
+#'      \item{extent}{The size of the tract. For COnoGC, this extent is the s
+#'            spanning region between flanking CO events.}
 #'      } 
-#' }
 #' 
 #' @seealso \code{\link{recombine_index}}, \code{\link{recombine}}, \code{\link{recombine_to_tetrad_states}}
 #' 
@@ -46,33 +26,23 @@
 #' 
 #' @export infer_tracts
 #' 
+#' @importFrom plyr ddply
+#'
 #' @examples
-# Example 1: 1 tetrad
-set.seed(1) # For reproducability
-l <- 1000 # number of loci to simulate
-rec <- 0.01 # recombination rate between each snp
-
-r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment
-p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=0) # recombine parents
-states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-
-
-infer_tracts(data=states, threshold_size=1e4)
-
-# threshold_size <- 1e3
-
-
-
-
-
-df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
-
-
-
-hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
- breaks=200, xlab="snp", main="start position of recombination point")
+#' #Example 1: 1 tetrad
+#' set.seed(1) # For reproducability
+#' l <- 1000 # number of loci to simulate
+#' rec <- 0.01 # recombination rate between each snp
+#' r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
+#' p_a <- .999 # probability of correct sequencing assignment
+#' p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
+#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=0.6, f.convert=0.7, length.conversion=10) # recombine parents
+#' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
+#' library(plyr)
+#' df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
+#' df
+#' #hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
+#' #breaks=200, xlab="snp", main="start position of recombination point")
 #
 #' # Example 2: 100 simulated tetrads with a recombination hotspot
 #' set.seed(1) # For reproducability
@@ -90,10 +60,7 @@ hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp
 #' hist(dplyr::filter(df1, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
 #'  breaks=200, xlab="snp", main="start position of recombination point")
 
-
-
-
-infer_tracts <- function(data, threshold_size=1e2){
+infer_tracts <- function(data, threshold_size=2.5e3){
 
     # Check and sort the data
     checked_data <- prep_infer_tracts_data(data) 
@@ -181,15 +148,15 @@ infer_tracts <- function(data, threshold_size=1e2){
         })
         
 
-        out <- do.call(rbind, outlist)
+        out2 <- do.call(rbind, outlist)
 
 
 
 
         # Return output of inferred tracts along the chromosome 
         # out <- out[,-1] # Housekeeping
-        colnames(out) <- c("region", "tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias", "pattern")
-        class(out) <- c("data.frame", "inferred.tracts")
+        colnames(out2) <- c("region", "tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias", "pattern")
+        class(out2) <- c("data.frame", "inferred.tracts")
 
 
     # return(out)
@@ -198,9 +165,6 @@ infer_tracts <- function(data, threshold_size=1e2){
 
         # Reclassifying temporary tracts:
 
-        # This identifies the approx location of COs without a detected gene conversion tract
-        # print("Screening for COs without GCs...")
-        out2 <- infer_COnoGC_tracts(out)
 
         # Now merge GC_internal tracts, if appropriate:
         # print("Merging internal GC tracts...")
@@ -278,9 +242,19 @@ infer_tracts <- function(data, threshold_size=1e2){
 
         out3$extent <- (out3$end_snp - out3$start_snp) + 1
 
+
+        # This identifies the approx location of COs without a detected gene conversion tract
+        # print("Screening for COs without GCs...")
+        out4 <- infer_COnoGC_tracts(out3)
+
+
+
+
+
+
         # Housekeeping:
-        out3 <- out3[,-c(1,2,3)]
-        return(out3)
+        out4 <- out4[,-c(1,2,3)]
+        return(out4)
     # })
    
     # Housekeeping: 
@@ -548,9 +522,9 @@ get_text <- function(i){
 # For example, 'COnoGC' is a cross-over region where no gene conversion was detected. Because there are 0
 # snps detecting gene conversion, the 'snp' location of the tracts is in between the crossover region.  
 infer_COnoGC_tracts <- function(inferred_tracts){
-    if(!inherits(inferred_tracts, "inferred.tracts")){
-        stop(paste("Object 'inferred_tracts' needs to be of class 'inferred.tracts'.", sep=""))
-    }
+    # if(!inherits(inferred_tracts, "inferred.tracts")){
+    #     stop(paste("Object 'inferred_tracts' needs to be of class 'inferred.tracts'.", sep=""))
+    # }
     tetrad <- inferred_tracts$tetrad[1]
     chr <- inferred_tracts$chr[1]
 
@@ -564,7 +538,7 @@ infer_COnoGC_tracts <- function(inferred_tracts){
                     res_range <- c(inferred_tracts[i, 'end_snp'],inferred_tracts[(i+1), 'start_snp'])
                     pt <- mean(res_range)
                     return(data.frame(region=0, tetrad=tetrad, chr=chr,type="COnoGC", start_snp=pt, 
-                        end_snp=pt, extent=res_range[2]-res_range[1], bias=NA))
+                        end_snp=pt, extent=res_range[2]-res_range[1]))#, bias=NA, pattern="9_9_9_9"))
                 }
             }
 
