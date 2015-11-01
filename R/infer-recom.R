@@ -418,6 +418,21 @@ recombine_to_tetrad_states <- function(tetrad_data){
 
 }
 
+# A function for converting a haploid fb dataset to a tetrad_states (used in infer_tracts)
+#' @export fb_to_tetrad_states
+fb_to_tetrad_states <- function(fb_data){
+    dat <- fb_data[,c('Tetrad', 'Spore', 'Chr', 'Snp', 'states_inferred')]
+    require(reshape2)
+    w <- reshape(dat, 
+      timevar = "Spore",
+      idvar = c("Tetrad", "Chr", "Snp"),
+      direction = "wide")
+    w <- w[complete.cases(w),]
+    colnames(w) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
+    return(w)
+}
+
+
 # Internal function that converts forward.backward class to tetrad.states class
 fb_2_tetrad_states <- function(data){
     res <- FALSE
