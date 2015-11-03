@@ -207,7 +207,8 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		} else {
 			# If one or more of the 6 points have a greater lnl than the 
 			# proposed xy point, then pick the point with the highest lnl 
-			xy <- points[[as.numeric(which(unlist(lnls)==max(unlist(lnls))))]]
+			# xy <- points[[as.numeric(which(unlist(lnls)==max(unlist(lnls))))]]
+			xy <- points[[names(rev(sort(unlist(lnls)))[1])]]
 			# print("One of the 6 points has a greater lnl than the proposed point")
 		}
 		
