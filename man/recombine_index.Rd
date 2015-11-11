@@ -7,29 +7,35 @@
 recombine_index(scale, snps)
 }
 \arguments{
-\item{p.trans}{a vector of length \code{L-1} specifying the recombination
-rate between two snps. Each element in \code{p.trans} must >= 0 (no recombination)
-and <= 0.5 (independent assortment).}
+\item{\code{scale}}{either vector of length 1 specifying the genome-wide recombination rate (Morgans/bp)
+or a vector of length(snps)-1 specifying the recombination rate between all snps. Rates must be positive.}
+
+\item{\code{snps}}{a vector gving the locations of snps along a chromosome}
 }
 \value{
-a vector of length \code{L-1} specifying the location of recombiantion points (i.e., between snps).
+a vector of length \code{snps-1} specifying the location of recombiantion points.
 }
 \description{
-Simulate recombination events given the vector transistion
-probs and the number of loci.
+Simulate recombination events given the vector of snp locations and recombination rate(s).
+Haldane's function is used to simulate the probabilty of getting an odd number of crossover events between
+any two snps given their physical distance and the specified recombination rate.
 }
 \examples{
 set.seed(1234567)
-l <- 100000 # number of loci to simulate
-scale <- 0.01 # d = bp*scale
-snps <- 1:l # floor(seq(from=1, to=1000, length.out=l)) # position of snps (in bps)
-# snps[25:l] <- 5000+snps[25:l]
-sum(recombine_index(scale=scale, snps=snps))/l
+# Simulating recombination across 1000 loci randomly spaced
+# along a 200kbp chromosome
+chromSize <- 2e5 # Chromosome size
+l <- 1e3 # number of loci to simulate
+c <- 1e-04 # Morgans/bp
+snps <- sort(sample(size=l, 1:chromSize, replace=FALSE))
+# Find recombination points between all the snps
+recomb_points <- recombine_index(scale=c, snps=snps)
+recomb_points
 }
 \author{
 Tyler D. Hether
 }
 \seealso{
-\code{\link{make_parents}}, \code{\link{fitEcm}}
+\code{\link{make_parents}}
 }
 

@@ -7,18 +7,17 @@
 make_parents(snps)
 }
 \arguments{
-\item{L}{is an integer specifying the number of loci to simulate. L must be greater than 1.}
+\item{\code{snps}}{a vector gving the locations of snps along a chromosome}
 }
 \value{
-an object of class \code{parent.genomes} giving the parental snp calls at each of the \code{L} loci.
+an object of class \code{parent.genomes} giving the parental ancestry at each snp.
 }
 \description{
 This function creates divergent genotypes between two parents. The first parent's genotypes
 are denoted by a vector of zeros of length \code{L} while the second parent's genotypes are a vector of ones.
 }
 \examples{
-# Make a chromosome of L=50 loci for each parent.
-make_parents(L=50)
+make_parents(snps=c(1:10)*10)
 }
 \author{
 Tyler D. Hether
