@@ -16,11 +16,10 @@ and gene conversion tracts.
 2) Haploid yeast data where each spore comes from a different tetrad.
 * This data type can be easily observed by the experimenter since spores can be liberated en masse 
 (e.g., enzymatically breaking up tetrad and vortexing spores).
-
 * Does not have the resolution to distinguish between different types of recombination since knowledge 
 of other spores in the tetrad are unknown.
 
-In either case, two haploid parent strains -- each sequenced at high coverage to accurately call 
+3) In either case, two haploid parent strains -- each sequenced at high coverage to accurately call 
 bi-allelic snps between them -- are mated forming F1 zygotes. These diploids are sporulated to 
 induce meiosis and the resulting haploid spores are isolated, grown in colonies, and DNA is 
 extracted and sequenced using which ever method the experimenter desires. Read counts for each 

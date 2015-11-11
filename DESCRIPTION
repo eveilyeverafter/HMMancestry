@@ -1,11 +1,11 @@
 Package: HMMancestry
 Type: Package
-Title: Estimation of crossover and non-crossovers gene conversions
+Title: R package using the Forward-Backward algorithm to infer genotypes, recombination hotspots, and gene conversion tracts from low-coverage next-generation sequence data
 Version: 2.0
 Date: 2015-11-14
 Author: Tyler D. Hether
 Maintainer: Tyler D. Hether <tyler.hether@gmail.com>
-Description: Fits models from Miller et al. 2005 to estimate population
+Description: to be added
 License: GPL (>= 2)
 LazyLoad: yes
 Packaged: 2015-01-15 10:10:27 UTC; tdh
