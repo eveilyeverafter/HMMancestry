@@ -3,9 +3,9 @@
 #' @description This function creates divergent genotypes between two parents. The first parent's genotypes
 #' are denoted by a vector of zeros of length \code{L} while the second parent's genotypes are a vector of ones.
 #' 
-#' @param L is an integer specifying the number of loci to simulate. L must be greater than 1. 
+#' @param \code{snps} a vector gving the locations of snps along a chromosome
 #' 
-#' @return an object of class \code{parent.genomes} giving the parental snp calls at each of the \code{L} loci. 
+#' @return an object of class \code{parent.genomes} giving the parental ancestry at each snp. 
 #' 
 #' @references none.
 #' 
@@ -16,23 +16,12 @@
 #' @export make_parents
 #' 
 #' @examples
-#' 
-#' # Make a chromosome of L=50 loci for each parent.
-#' make_parents(L=50)
+#' make_parents(snps=c(1:10)*10)
 
 make_parents <- function(snps){
-	# if(length(L)!=1){
-	# 	stop("The number of loci to simulate needs to be a vector of length 1")
-	# }
-	# if(!inherits(L, "numeric")){ 
-	# 	stop("The number of loci to simulate needs to be numeric")
-	# }
-	# if(L!=as.integer(L)){
-	# 	stop("The number of loci to simulate needs to be an integer")
-	# }
-	# if(L<2){
-	# 	stop("The number of loci to simulate needs to be >= 2")
-	# }
+	if(length(snps)<2){
+		stop("The number of loci to simulate needs to be >= 2")
+	}
 
 	# Code the parent genomes (0 or 1)
 	p1 <- rep(0, length(snps))
@@ -41,21 +30,23 @@ make_parents <- function(snps){
 	out <- list(snps=snps, p1=p1, p2=p2)
 	class(out) <- c("list", "parent.genomes")
 	return(out)
-
 }
 
 #' @title Simulate recombination points along a chromosome.
 #' 
-#' @description Simulate recombination events given the vector transistion 
-#' probs and the number of loci.
+#' @description Simulate recombination events given the vector of snp locations and recombination rate(s). 
+#' Haldane's function is used to simulate the probabilty of getting an odd number of crossover events between
+#' any two snps given their physical distance and the specified recombination rate.
 #' 
-#' @param p.trans a vector of length \code{L-1} specifying the recombination 
-#' rate between two snps. Each element in \code{p.trans} must >= 0 (no recombination) 
-#' and <= 0.5 (independent assortment).
+#' @param \code{scale} either vector of length 1 specifying the genome-wide recombination rate (Morgans/bp)
+#' or a vector of length \code{snps-1} specifying the recombination rate between all snps. In either
+#' case rates must be positive.
+#'
+#' @param \code{snps} a vector gving the locations of snps along a chromosome
 #' 
-#' @return a vector of length \code{L-1} specifying the location of recombiantion points (i.e., between snps).
+#' @return a vector of length \code{snps-1} specifying the location of recombiantion points.
 #' 
-#' @seealso \code{\link{make_parents}}, \code{\link{fitEcm}}
+#' @seealso \code{\link{make_parents}}
 #' 
 #' @author Tyler D. Hether
 #' 
@@ -64,28 +55,46 @@ make_parents <- function(snps){
 #' @examples
 #' 
 #' set.seed(1234567)
-#' l <- 100000 # number of loci to simulate
-#' scale <- 0.01 # d = bp*scale
-#' snps <- 1:l # floor(seq(from=1, to=1000, length.out=l)) # position of snps (in bps)
-#' # snps[25:l] <- 5000+snps[25:l]
-#' sum(recombine_index(scale=scale, snps=snps))/l
+#' # Simulating recombination across 1000 loci randomly spaced 
+#' # along a 200kbp chromosome
+#' chromSize <- 2e5 		# Chromosome size
+#' l <- 1e3 				# number of loci to simulate
+#' c <- 1e-04 				# Morgans/bp
+#' snps <- sort(sample(size=l, 1:chromSize, replace=FALSE))
+#' # Find recombination points between all the snps
+#' recomb_points <- recombine_index(scale=c, snps=snps)
+#' recomb_points
 
 recombine_index <- function(scale, snps){
-	# if(class(p.trans)!="numeric"){
-	# 	stop("The vector 'p.trans' needs to be numeric")
-	# }
 
-	# check_values(a=p.trans, x=0, y=0.5)
+	if(length(scale)==1){
+		c <- rep(scale, length(snps)-1)
+	} else {
+		c <- scale
+	}
+	if(!all(scale >=0)){
+		stop("all elements in scale need to be a positive rate (Morgans / bp)")
+	}		
+	if(length(snps)<2){
+		stop("the vector of snps needs to be greater than 1 in length")
+	}
+	if(length(c)!=(length(snps)-1)){
+		stop(paste("scale needs to either a single rate or vector of length ", length(snps)-1 ," giving the rates between each snp", sep=""))
+	}
+	if(sum(snps-sort(snps))!=0){
+		warning("Input snps were not sorted")
+		snps <- sort(snps)
+	}
 	haldane <- function(d){ (1/2)*(1- exp(-2*d))}
 	displacement <- sapply(2:length(snps), function(x){
 		return(snps[x]-snps[x-1])
 		})
-	# displacement <- c(snps[])
+	if(!all(displacement>0)){
+		stop("The physical distance between all snps must be >0")
+	}
 
 	# 1==recombination occurs, 0==no recombination
-	out <- sapply(1:length(displacement), function(i) rbinom(n=1, size=1, prob=haldane(displacement[i]*scale)))
-	# out <- rbinom(n=length(displacement), size=1, prob=haldane(displacement[i]*scale))
-	# sum(out)/snps[l]
+	out <- sapply(1:length(displacement), function(i) rbinom(n=1, size=1, prob=haldane(displacement[i]*c[i])))
 	return(out)
 }
 
