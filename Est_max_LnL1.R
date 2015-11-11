@@ -52,7 +52,7 @@ est_maxLnL <- function(dat, ploidy="haploid", initial_p_assign="NULL", initial_s
 		clusterExport(cl=cl, varlist=ls())
 
 	    coarse_res <- parLapply(cl, 1:dim(pars)[1], function(yy){
-	    	require(plyr);require(ddply);require(fbgenotyper)
+	    	require(plyr);require(ddply);require(HMMancestry)
 	        res_c <- ddply(dat, .(Ind, Chr), function(xx){
 	           if(ploidy=="haploid")
 	           {

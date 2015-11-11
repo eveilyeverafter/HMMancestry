@@ -1,2 +1,2 @@
 library('testthat')
-test_check('fbgenotyper')
+test_check('HMMancestry')

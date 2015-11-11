@@ -1,4 +1,4 @@
-source("helper-fbgenotyper.R")
+source("helper-HMMancestry.R")
 
 context("Testing tetrad dependent code")
 

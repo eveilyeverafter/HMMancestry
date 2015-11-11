@@ -4,9 +4,9 @@ Package HMMancestry (dev)
 ![alt tag](/logo.pdf)
 
 
-The package fbgenotyper was designed to infer recombination breakpoints, hotspots, and coldspots 
+The package HMMancestry was designed to infer recombination breakpoints, hotspots, and coldspots 
 in high-throughput, next-generation sequence data, even when sequencing coverage is relatively 
-low. Currently, fbgenotyper handles three types of data:
+low. Currently, HMMancestry handles three types of data:
 
 1) Haploid yeast data where each of four spores of a tetrad are genotyped.
 * Low throughput for the experimenter since it requires tetrad dissection.
@@ -24,10 +24,10 @@ bi-allelic snps between them -- are mated forming F1 zygotes. These diploids are
 induce meiosis and the resulting haploid spores are isolated, grown in colonies, and DNA is 
 extracted and sequenced using which ever method the experimenter desires. Read counts for each 
 individually barcoded and sequenced spore are estimated from the parental snps using a mapping 
-program like bowtie2 or bwa. These read counts are used in fbgenotyper to estimate recombination 
+program like bowtie2 or bwa. These read counts are used in HMMancestry to estimate recombination 
 hotspots, average length of a gene conversion tracts, and more.
 
-3) Diploid data with read counts for alternative snps. This is the newest part of fbgenotyper and is the part that is under the most development currently. Stay tuned for updates. 
+3) Diploid data with read counts for alternative snps. This is the newest part of HMMancestry and is the part that is under the most development currently. Stay tuned for updates. 
 
 
 

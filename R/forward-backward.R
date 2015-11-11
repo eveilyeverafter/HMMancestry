@@ -22,7 +22,7 @@
 #' @param p.trans the per snp (check that) recombination (i.e., transition) probability. 
 #' 
 #'@importFrom Rcpp evalCpp
-#'@useDynLib fbgenotyper
+#'@useDynLib HMMancestry
 #' @details \code{tetrad_estimate_anc_fwd_back} attempts to estimate 
 #' parental genotypic 'states' along a chromosome given empirical or 
 #' simulated F2 cross data were all four spores of a tetrad are genotyped. 

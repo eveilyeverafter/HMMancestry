@@ -16,9 +16,9 @@ build:
 	R CMD build .
 
 check: build
-	R CMD check --no-manual `ls -1tr fbgenotyper*gz | tail -n1`
-	@rm -f `ls -1tr fbgenotyper*gz | tail -n1`
-	@rm -rf fbgenotyper.Rcheck
+	R CMD check --no-manual `ls -1tr HMMancestry*gz | tail -n1`
+	@rm -f `ls -1tr HMMancestry*gz | tail -n1`
+	@rm -rf HMMancestry.Rcheck
 
 # No real targets!
 .PHONY: all test document install
