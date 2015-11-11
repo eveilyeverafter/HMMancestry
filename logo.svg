@@ -16,17 +16,17 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="FBpiLogo.svg">
+   sodipodi:docname="logo.svg">
   <sodipodi:namedview
      id="base"
-     pagecolor="#ffffff"
+     pagecolor="#fcfcfc"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="182.41763"
-     inkscape:cy="146.27077"
+     inkscape:cx="198.7844"
+     inkscape:cy="203.77076"
      inkscape:document-units="px"
      inkscape:current-layer="layer2"
      showgrid="false"
@@ -86,16 +86,16 @@
          style="stop-color:#e9e6e6;stop-opacity:0;" />
     </linearGradient>
     <radialGradient
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(1,0,0,1.0155943,12.41066,-14.255299)"
-       r="104.35471"
-       fy="136.0069"
-       fx="166.34274"
-       cy="136.0069"
-       cx="166.34274"
-       id="radialGradient5669"
+       inkscape:collect="always"
        xlink:href="#linearGradient5663"
-       inkscape:collect="always" />
+       id="radialGradient8739"
+       cx="178.75345"
+       cy="123.87248"
+       fx="178.75345"
+       fy="123.87248"
+       r="104.35471"
+       gradientTransform="matrix(-1.9148476,-0.70084074,0.09925352,-1.3115288,508.7443,411.6125)"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <metadata
      id="metadata7">
@@ -207,7 +207,7 @@
        cy="123.87248"
        cx="178.75345"
        id="ellipse4195"
-       style="opacity:0.931;fill:url(#radialGradient5669);fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:6.04798746;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+       style="opacity:0.931;fill:url(#radialGradient8739);fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:6.04798746;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
     <g
        inkscape:transform-center-y="111.52387"
        inkscape:transform-center-x="-22.308376"
@@ -320,13 +320,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:82.84461975px;line-height:125%;font-family:'Academy Engraved LET';-inkscape-font-specification:'Academy Engraved LET, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#b29170;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="8.1351042"
-       y="424.37527"
+       x="3.1351042"
+       y="381.51813"
        id="text8672"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan8674"
-         x="8.1351042"
-         y="424.37527">FBgenotyper</tspan></text>
+         x="3.1351042"
+         y="381.51813"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:56.25px;line-height:125%;font-family:'Academy Engraved LET';-inkscape-font-specification:'Academy Engraved LET, Normal';text-align:start;writing-mode:lr-tb;text-anchor:start">HMMancestry</tspan></text>
   </g>
 </svg>
