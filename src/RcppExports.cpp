@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // c_est_fwd_back
 DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP fbgenotyper_c_est_fwd_back(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+RcppExport SEXP HMMancestry_c_est_fwd_back(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -22,7 +22,7 @@ END_RCPP
 }
 // c_est_fwd_back_diploid
 DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP fbgenotyper_c_est_fwd_back_diploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+RcppExport SEXP HMMancestry_c_est_fwd_back_diploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -37,7 +37,7 @@ END_RCPP
 }
 // lapply1
 List lapply1(List input, Function f);
-RcppExport SEXP fbgenotyper_lapply1(SEXP inputSEXP, SEXP fSEXP) {
+RcppExport SEXP HMMancestry_lapply1(SEXP inputSEXP, SEXP fSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;

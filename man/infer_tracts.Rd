@@ -4,16 +4,14 @@
 \alias{infer_tracts}
 \title{Identify crossover, non-crossover, and gene conversion tracts}
 \usage{
-infer_tracts(inferred_states_data)
+infer_tracts(data, threshold_size = 2500)
 }
 \arguments{
 \item{data}{a \code{states.matrix} or \code{forward.backward} object inherited from either
 \code{recombine_to_tetrad_states} or \code{estimate_anc_fwd_back}}
 
-\item{tetrad}{(Optional) A numeric or character specifying the tetrad ID}
-
-\item{chr}{(Optional) A numeric or character specifying the chromosome ID if class \code{tetrad.states}.
-If \code{data} is of class \code{forward.backward} than \code{chr} will be provided.}
+\item{threshold_size}{numeric. If a 2:2 tract is smaller than this value then
+   it is considered a (part of a) gene converson tract.}
 }
 \value{
 A data.frame containing the following columns:
@@ -21,49 +19,31 @@ A data.frame containing the following columns:
      \item{tetrad}{The tetrad ID (default == 1)}
      \item{chr}{The chromosome ID (default == "I")}
      \item{type}{The type of inferred tract:}
-     \describe{
-         \item{1. 2_2}{a tract with a 2:2 ratio}
-         \item{2. GC_tel}{a gene conversion tract located at a chromosomal end}
-         \item{3. GC_internal}{a gene conversion tract with at least one flanking tract also a gene conversion tract}
-         \item{4. COnoGC}{indicates where a crossover event occurred but without a detectable gene conversion tract}
-         \item{5. COyesGC}{a gene conversion tract associated with a crossover event}
-         \item{6. NCO}{a gene conversion tract without an associated crossover event}
+     \item{start_snp}{The starting snp position in base pairs}
+     \item{end_snp}{The ending snp position in base pairs}
+     \item{extent}{The size of the tract. For COnoGC, this extent is the s
+           spanning region between flanking CO events.}
      }
-     \item{start_snp}{numeric value of the first snp in a given tract}
-     \item{end_snp}{numeric value of the last snp in a given tract}
-     \item{extent}{numeric value of the range of snps (inclusive) in a given tract}
-     \item{bias}{integer specifying the gene conversion bias where:}
-     \describe{
-         \item{a. 0}{a 4:0 segregation (all of parent 0 type)}
-         \item{b. 1}{a 3:1 segregation}
-         \item{c. 2}{a 2:2 no bias found}
-         \item{d. 3}{a 1:3 segregation}
-         \item{e. 4}{a 0:4 segregation (all of parent 1 type)}
-         \item{f. NA}{(COnoGC only) bias information is not applicable}
-     }
-}
 }
 \description{
 Infers different types of tracts (crossover, non-crossover, and gene conversion) along a
 chromosome given genotyped yeast tetrads or simulated data
 }
-\details{
-(to do)
-}
 \examples{
-# Example 1: 1 tetrad
+#Example 1: 1 tetrad
 set.seed(1) # For reproducability
 l <- 1000 # number of loci to simulate
 rec <- 0.01 # recombination rate between each snp
-r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p <- make_parents(l) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
+r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
+p_a <- .999 # probability of correct sequencing assignment
+p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
+recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=0.6, f.convert=0.7, length.conversion=10) # recombine parents
 states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-df <- ddply(states, .(Tetrad, Chr), infer_tracts)
-hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
- breaks=200, xlab="snp", main="start position of recombination point")
-#
+library(plyr)
+df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
+df
+#hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
+#breaks=200, xlab="snp", main="start position of recombination point")
 # Example 2: 100 simulated tetrads with a recombination hotspot
 set.seed(1) # For reproducability
 rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))

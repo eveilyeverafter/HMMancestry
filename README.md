@@ -1,11 +1,7 @@
-Package fbgenotyper (dev)
+Package HMMancestry (dev)
 =============
 
 ![alt tag](/FBgenotyper2.pdf)
-
-
-
-ATTN: fbgenotyper is in the middle of a complete overhaul as we optimize code for speed and improve functionality (e.g., added support for non-yeast species and diploids). For now please consider this package "experimental". 
 
 
 The package fbgenotyper was designed to infer recombination breakpoints, hotspots, and coldspots 
