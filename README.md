@@ -19,7 +19,7 @@ and gene conversion tracts.
 * Does not have the resolution to distinguish between different types of recombination since knowledge 
 of other spores in the tetrad are unknown.
 
-3) In either case, two haploid parent strains -- each sequenced at high coverage to accurately call 
+In either case, two haploid parent strains -- each sequenced at high coverage to accurately call 
 bi-allelic snps between them -- are mated forming F1 zygotes. These diploids are sporulated to 
 induce meiosis and the resulting haploid spores are isolated, grown in colonies, and DNA is 
 extracted and sequenced using which ever method the experimenter desires. Read counts for each 
@@ -27,11 +27,19 @@ individually barcoded and sequenced spore are estimated from the parental snps u
 program like bowtie2 or bwa. These read counts are used in HMMancestry to estimate recombination 
 hotspots, average length of a gene conversion tracts, and more.
 
-3) Diploid data with read counts for alternative snps. This is the newest part of HMMancestry and is the part that is under the most development currently. Stay tuned for updates. 
+3) Diploid data with read counts for alternative snps. This is the newest part of HMMancestry and is the part that is under the most development currently.
+* Can be used to infer local ancestry of a number of model organisms
+* Advanced filial generations can be used to increase detection of hotspots
+* NCO and CO-associated gene conversion tracts cannot be determined with diploids since the algorithm doesn't use phase information.
 
 
 
 To build:
+1) Have the R package devtools installed
+2) Have git installed on your machine
+3) Open Terminal, pull down the repo, and cd into the directory
+4) type the following:
+
 ```
 make roxygen
 make build
