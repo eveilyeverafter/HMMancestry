@@ -1,7 +1,7 @@
 Package HMMancestry (dev)
 =============
 
-![alt tag](/FBgenotyper2.pdf)
+![alt tag](/logo.pdf)
 
 
 The package fbgenotyper was designed to infer recombination breakpoints, hotspots, and coldspots 
