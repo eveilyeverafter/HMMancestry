@@ -15,6 +15,9 @@ unsigned nChoosek( unsigned n, unsigned k );
 double haldane(double d);
 
 // This is the main function to export (haploid version)
+//' @title Inferring hidden ancestry states from haploids
+//'
+//' @description stuff goes here
 //'@export
 // [[Rcpp::export]]
 DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
