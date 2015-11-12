@@ -23,7 +23,7 @@ events that result in crossing over. This is same as 1 minus the frequency of no
 during recombination.}
 
 \item{length.conversion}{an integer specifying the mean (and variance) of a given gene conversion
-tract.}
+tract (in bps).}
 }
 \value{
 an object of class \code{recombine} that contains the following data:

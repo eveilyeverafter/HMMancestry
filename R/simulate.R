@@ -155,7 +155,7 @@ recombine_index <- function(scale, snps){
 #' @export recombine
 #' 
 #' @examples
-#' set.seed(1234567)        # For reproducability
+#' set.seed(1234567)        # For reproducibility
 #' l <- 50                  # number of snps to simulate
 #' c <- 3e-05               # recombination rate between snps (Morgan/bp)
 #' snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
@@ -268,7 +268,7 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 #' @export simulate_coverage
 #' 
 #' @examples
-#' set.seed(1234567)        # For reproducability
+#' set.seed(1234567)        # For reproducibility
 #' l <- 50                  # number of snps to simulate
 #' c <- 3e-05               # recombination rate between snps (Morgan/bp)
 #' snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
@@ -285,7 +285,6 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 #' # And finally simulated read coverage for each haploid recombinant
 #' sim_cov <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=coverage) # simulate sequencing coverage
 #' sim_cov
-
 
 simulate_coverage <- function(simdata, p.assign, coverage){
 	if(!inherits(simdata, "recombine")){
@@ -324,42 +323,48 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 	return(out)
 }
 
-#' @title Simulate recombination of a given number of tetrads
+#' @title Simulate recombination across a given number of meiosis events
 #' 
 #' @description This is a wrapper function of many other functions that simulates a given number of
 #' tetrads each with four haploid spores that are recombinants between two parents.  
 #' 
 #' @param n.tetrads An integer specifying the number of tetrads to simulate.
 #' 
-#' @param l an integer describing the number of loci to simulate.
-#' 
-#' @param rec a vector of length \code{l-1} that contains the the recombation rate 
-#' between each snp.
-#' 
+#' @param \code{scale} either vector of length 1 specifying the genome-wide recombination rate (Morgans/bp)
+#' or a vector of length \code{snps-1} specifying the recombination rate between all snps. In either
+#' case rates must be positive.
+#'
+#' @param \code{snps} a vector gving the locations of snps along a chromosome
+#'
 #' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
-#' correct sequencing assignment.
+#' correct sequencing assignment. A value of 1 means that no sequencing error or ancestral 
+#' polymorphism is to be simulated. 
 #' 
 #' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
 #' 
+#' @param r.index a vector of length \code{snps-1} specifying whether a recombination is to be 
+#' simulated (1) or not (0) in between two adjacent snps. 
+#' 
 #' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination 
-#' events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
+#' events that result in crossing over. This is same as 1 minus the frequency of non-crossovers.
 #' 
 #' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion 
 #' during recombination.
 #' 
 #' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
-#' tract.
+#' tract (in bps).
+#'
+#' @param chr.name a numeric or character value specifying the chromosome name (default to "I") 
 #' 
-#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
-#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
-#' 
-#' @return A list of length n.tetrads of class \code{tetrad}. Each element of 
-#' \code{tetrad} is itself a list of class \code{individual.tetrad}, which 
-#' contains four lists, one for each spore, and three elements: 
-#' \describe{
-#' 	\item{p0.assign}{The number of reads that were simulated for parent 0.}
-#' 	\item{p1.assign}{The number of reads taht were simulated for parent 1.}
-#' 	\item{snps}{The snp id along the simulated chromosome.}
+#' @return A data.frame of class \code{tetrad}. Each row contains the following information:
+#' \itemize{
+#' 	\item{Tetrad}{ The tetrad ID}
+#' 	\item{Spore}{ The spore ID (1:4)}
+#' 	\item{Chr}{ The chromosome name}
+#'  \item{Snp}{ The snp location (in bps)}
+#'  \item{p0}{ The number of reads that mapped to parent 0}
+#'  \item{p1}{ The number of reads that mapped to parent 1}
+#'  \item{states_given}{ The simulated states (0 or 1)}
 #' } 
 #' 
 #' @seealso \code{\link{recombine}}, \code{\link{make_parents}}, 
@@ -370,30 +375,62 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 #' @export sim_tetrad
 #' 
 #' @examples
-#' set.seed(1234567) # For reproducability
-#' # simulate a recombination hotspot between the 99th and 100th snp
-#' l=200; scale = 0.01; snps=2*(1:l);
-#' n.tetrads <- 100 # number of spores to simulate
-#' res <- sim_tetrad(n.tetrads=n.tetrads, l=l, scale=scale, snps=snps, p.assign=0.999, 
-#'    mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=10, coverage=2.5)
+#' set.seed(1234567)        # For reproducibility
+#' n_tetrads <- 100         # number of tetrads (meiosis events)
+#' l <- 50                  # number of snps to simulate
+#' c <- 3e-05               # recombination rate between snps (Morgan/bp)
+#' snps <- c(1:l)*2e4       # snps are evenly spaced 20kbp apart
+#' p_a <- 0.97              # assignment probability
+#' coverage <- 1            # mean coverage
+#' # Now simulate
+#' sim100 <- sim_tetrad(n.tetrads=n_tetrads, scale=c, snps=snps, 
+#' 	p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
+#' 	length.conversion=2e3, coverage=2)
+#' sim100
 
 sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
-        length.conversion, coverage){
-
-    out <- lapply(1:n.tetrads, function(Z, ...){
+        length.conversion, coverage, chr.name="I"){
+	p <- make_parents(snps)
+    
+    res <- lapply(1:n.tetrads, function(Z, ...){
 
         r <- recombine_index(scale, snps)
         # print(sum(r)/snps[l])
-        p <- make_parents(snps)
+        
         recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
         sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
         class(sim_reads) <- list("individual.tetrad")
         return(sim_reads)
     })
-    class(out) <- c("list", "tetrad")
+    
+    # Convert to proper dataframe:
+    dat0 <- lapply(1:length(res), function(x){
+
+      one <- res[[x]][[1]]
+      two <- res[[x]][[2]]
+      three <- res[[x]][[3]]
+      four <- res[[x]][[4]]
+
+      return(rbind(
+        data.frame(Tetrad=x, Spore=1, Chr=chr.name, Snp=one$snps, p0=one$p0.assign, p1=one$p1.assign, states_given=one$states_given),
+        data.frame(Tetrad=x, Spore=2, Chr=chr.name, Snp=two$snps, p0=two$p0.assign, p1=two$p1.assign, states_given=two$states_given),
+        data.frame(Tetrad=x, Spore=3, Chr=chr.name, Snp=three$snps, p0=three$p0.assign, p1=three$p1.assign, states_given=three$states_given),
+        data.frame(Tetrad=x, Spore=4, Chr=chr.name, Snp=four$snps, p0=four$p0.assign, p1=four$p1.assign, states_given=four$states_given)
+      ))
+
+      })
+    out <- do.call(rbind, dat0)
+
+    class(out) <- c("data.frame", "tetrad")
     return(out)
 }
+
+
+
+
+
+
 
 # tmpres <- lapply(1:length(out), function(x){
 # 	tmp <- out[[x]][[1]]$states_given
@@ -453,7 +490,7 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
 #' @export sim_en_masse
 #' 
 #' @examples
-#' set.seed(1234567) # For reproducability
+#' set.seed(1234567) # For reproducibility
 #' # simulate a recombination hotspot between the 100th and 101st snp
 #' l=100; scale = 0.01; snps=1:l
 #' n.spores <- 500 # number of spores to simulate
