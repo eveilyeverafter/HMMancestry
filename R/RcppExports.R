@@ -17,12 +17,10 @@
 #'
 #' @param p_assign a value specifying the assignment probabilty (see details).
 #'
-#' @param scale a numeric specifying the transition probability of going from
-#' one hidden state to the next. This
-#' is the genome-wide recombination rate (Morgans / bp). scale is assumed to be 
+#' @param scale a numeric specifying the the genome-wide recombination rate (Morgans / bp). \code{scale} is assumed to be 
 #' between 0 and 1 but in practice it is usually quite small. 
 #'
-#' @details \code{fb_haploid} attempts to estimate 
+#' @details The function \code{fb_haploid} attempts to estimate 
 #' parental genotypic 'states' along a chromosome given empirical or 
 #' simulated F2 cross data. 
 #' Next-generation data inherits both sequencing error and missing data 
@@ -40,57 +38,90 @@
 #'  that a snp location is of a given parental state.
 #' } 
 #' 
-#' The two element vector of forward probabilities for each parental state 
-#' \equ{f_{i}} at each position, i, are calculated as:
-#' \dequ{f_{i} = e_{i}T_{i}f_{i-1}}
+#' The two element vector of forward probabilities, \eqn{f_{i}}, for each parental state 
+#' at each position \eqn{ i } is calculated as:
+#' \deqn{ f_{i} = \mathbf{e_{i}}~\mathbf{T_{i}}~\mathbf{f_{i-1}} }
 #' 
-#' where \equ{e_{i}} is the emission probabilities for each state (see below), \equ{T_{i}}
+#' where \eqn{e_{i}} is the emission probabilities for each state (see below), \eqn{T_{i}}
 #' is a 2-by-2 matrix describing the transition (recombination) probabilities
-#' between two states, and \equ{f_{i-1}} is the forward probability at the 
-#' previous position along the chromosome (5' of position i). It is assumed 
+#' between two states, and \eqn{f_{i-1}} is the forward probability at the 
+#' previous position along the chromosome (5' of position \eqn{i}). It is assumed 
 #' that each state is equally likely to occur at the first position. 
 #' 
 #' 
 #' The emmission probabilities are calculated independently for 
 #' each snp and depends on the sequence reads assigned to parent "0" 
-#' and parent "1" and \code{p.assign}. The emission probabilities are
+#' and parent "1" and \code{p_assign}. The emission probabilities are
 #' calculated using the binomial equation. For example, the emission
 #' probability for parental state "0" at snp position i is: 
 #' 
-#' \dequ{e_{i,0} = {n \choose{k0}} p^{k0} (1-p)^{n-k0}}
+#' \deqn{e_{i}^{(0)} = {n \choose{k_{0}}} p^{k0} (1-p)^{n-k_{0}}}
 #' 
-#' where n is the sum of the number of reads from both parents and p 
-#' is \code{p.assign}. 
+#' where \eqn{n} is the sum of the number of reads from both parents at snp \eqn{i} and \eqn{p} 
+#' is the assignment probability, \code{p_assign}. 
 #' 
 #' Like the emission probabilities, the transition probabilities are also
-#' calculated for each snp position. This accounts for the displacement 
-#' between snps.  For example if the per base recombination rate is 
-#' 0.001 and two snps are 10 base pairs apart, the transition probability of
-#' is 0.01 (i.e., the probability of not recombining would be 0.99).
+#' calculated for each snp position. The transition probabilities in matrix \eqn{\mathbf{T_{i}}}
+#' are calcuated from the genome-wide recombination rate, \code{scale}, and the physical
+#' distance (in bps) between the two snps. Specifically, Haldane's function is used
+#' to estimate the probabilty of getting an odd number of crossovers between snp \eqn{i}
+#' and snp \eqn{i-1}. For more details, see Hether et al. (in prep).
 #' 
 #' To avoid underflow, we rescale the forward (and backward) probabilities
 #' each iteration to that they sum to unity. 
 #' 
 #' The backward probabilities are calculated similarly but in the 3' to 5' 
 #' direction. It is assumed that the backward probability is equally likely 
-#' in each state. Following Durbin et al (1998) the backward probability at
-#' snp position i is: 
+#' in each state. Following Durbin et al. (1998) the backward probability at
+#' snp position \eqn{i} is: 
 #' 
-#' \dequ{b_{i} = T_{i}e_{i+1}b_{i+1}}
+#' \deqn{b_{i} = \mathbf{T_{i}}~\mathbf{e_{i+1}}~\mathbf{b_{i+1}}}
 #' 
-#' Again, these probabilities are rescale to avoid underflow. 
+#' Again, these probabilities are rescaled to avoid underflow. 
 #' 
-#' The posterior probability that the state at position i is k, \equ{\pi_{i}=k} 
-#' given the observed sequence read counts for each parent at position i, \equ{x_{i}}
+#' The posterior probability that the state at position \eqn{i} is \eqn{k}
+#' given the observed sequence read counts for each parent at position i, \eqn{x_{i}}
 #' is calculated by:  
 #' 
-#' \dequ{P(\pi_{i} = k | x_{i}) = \frac{f_{i} b{i}}{\sum\limits_{k=0}^{1} f_{i}^{(k)} b{i}^{(k)}}}
+#' \deqn{P(\pi_{i} = k~|~x_{i}) = \frac{f_{i} b_{i}}{\sum\limits_{k=0}^{1} f_{i}^{(k)} b_{i}^{(k)}}}
 #' 
-#' where the super scripts in the denominator are vector indices. 
-#' 
+#' Ties in posterior probabilities are rare with sufficient coverage and/or signal. However, in the event of a tie state 1 is picked.
+#'
 #' Finally, we can determine the log likelihood of the whole sequence 
 #' of observations by summing up the log of all the scale factors in the 
 #' forward probability calculation.
+#'
+#' @return a dataframe with the following columns: 
+#' \itemize{
+#'     \item \code{snp_locations}
+#'     \item \code{p0}
+#'     \item \code{p1}
+#'     \item The emission matrix (2 columns) specifying the emmision probability of belong
+#' to the parent 0 (emiss.1) and parent 2 (emiss.2) 
+#'     \item the forward probability matrix (2 columns) giving the scaled
+#'     forward probabilities of belong
+#' to the parent 0 (forward.1) and parent 2 (forward.2)
+#'     \item the backward probability matrix (2 columns) giving the scaled
+#'     backward probabilities of belong
+#' to the parent 0 (backward.1) and parent 2 (backward.2)
+#'     \item \code{Fscale} The forward scaling factor for each snp
+#'     \item \code{Bscale} The backward scaling factor for each snp
+#'     \item posterior probability matrix (2 columns) posterior
+#'     probabilities for belong to each parental state
+#'     \item states_inferred a vector of length snp_locations giving the state with the
+#'     highest posterior. 
+#'     \item lnL a numeric giving the total likelihood of the data (see details).
+#' }
+#'
+#' @references Hether, T.D., C. G. Wiench1, and P.A. Hohenlohe (in review). 2015. Novel molecular and analytical tools 
+#' for efficient estimation of rates of meiotic crossover, non-crossover and gene conversion
+#'
+#' Drubin, R. S. Eddy, A. Krogh, and G. Mitchison. 1998. Biological Sequence Analysis: Probabilistic Models
+#' of proteins and nucleic acids. Cambridge University Press, Cambridge CB2 8RU, UK.
+#'
+#' @seealso \code{\link{fb_diploid}}
+#'
+#' @author Tyler D. Hether
 #'
 #' @examples
 #' set.seed(1234567)        # For reproducibility
@@ -105,6 +136,7 @@
 #'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
 #'  length.conversion=2e3, coverage=coverage)
 #' fb_haploid(snp_locations=sim1$Snp, p0=sim1$p0, p1=sim1$p1, p_assign=p_a, scale=c)
+#'
 #' @export
 fb_haploid <- function(snp_locations, p0, p1, p_assign, scale) {
     .Call('HMMancestry_fb_haploid', PACKAGE = 'HMMancestry', snp_locations, p0, p1, p_assign, scale)
@@ -112,7 +144,57 @@ fb_haploid <- function(snp_locations, p0, p1, p_assign, scale) {
 
 #' @title Inferring hidden ancestry states from diploids
 #'
-#' @description stuff goes here
+#' @description Uses the forward-backward algorithm to estimate ancestral states 
+#' along a given chromosome for a given genotyped diploid.
+#'
+#' @param snp_locations a numeric vector specifying the locations of each snp (in bps). This
+#' vector is assumed to be ordered (sorted from smallest to largest snp).
+#' 
+#' @param p0 a vector specifying the number of reads that mapped to parent 0. 
+#' p0 is assumed to be in the smae order as snp_locations. 
+#'
+#' @param p1 a vector specifying the number of reads that mapped to parent 1. 
+#' p1 is assumed to be in the smae order as snp_locations.
+#'
+#' @param p_assign a value specifying the assignment probabilty (see details).
+#'
+#' @param scale a numeric specifying the the genome-wide recombination rate (Morgans / bp). \code{scale} is assumed to be 
+#' between 0 and 1 but in practice it is usually quite small. 
+#'
+#' @details This is an extension of \code{\link{fb_haploid}} with three hidden states:
+#' two homozygous states and a heterozygous state. 
+#'
+#' @return a dataframe with the following columns: 
+#' \itemize{
+#'     \item \code{snp_locations}
+#'     \item \code{p0}
+#'     \item \code{p1}
+#'     \item The emission matrix (3 columns) specifying the emmision probability of belong
+#' to the only parent 0 (emiss.1), both parents (emiss.1), and only parent 2 (emiss.3) 
+#'     \item the forward probability matrix (3 columns) giving the scaled
+#'     forward probabilities of belong
+#' to the only parent 0 (forward.1), both parents (forward.2), and only parent 2 (forward.3)
+#'     \item the backward probability matrix (3 columns) giving the scaled
+#'     backward probabilities of belong
+#' to the only parent 0 (backward.1), both parents (backward.2), and only parent 2 (backward.3)
+#'     \item \code{Fscale} The forward scaling factor for each snp
+#'     \item \code{Bscale} The backward scaling factor for each snp
+#'     \item posterior probability matrix (3 columns) posterior
+#'     probabilities for belong to each parental state
+#'     \item states_inferred a vector of length snp_locations giving the state with the
+#'     highest posterior. 
+#'     \item lnL a numeric giving the total likelihood of the data (see \code{\link{fb_haploid}} ).
+#' }
+#'
+#' @references Hether, T.D., C. G. Wiench1, and P.A. Hohenlohe (in review). 2015. Novel molecular and analytical tools 
+#' for efficient estimation of rates of meiotic crossover, non-crossover and gene conversion
+#'
+#' Drubin, R. S. Eddy, A. Krogh, and G. Mitchison. 1998. Biological Sequence Analysis: Probabilistic Models
+#' of proteins and nucleic acids. Cambridge University Press, Cambridge CB2 8RU, UK.
+#'
+#' @seealso \code{\link{fb_haploid}}
+#'
+#' @author Tyler D. Hether
 #'
 #' @examples
 #' set.seed(1234567)        # For reproducibility
