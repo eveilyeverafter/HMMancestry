@@ -13,6 +13,8 @@
 #' 
 #' @author Tyler D. Hether
 #' 
+#'@importFrom Rcpp evalCpp
+#'@useDynLib HMMancestry
 #' @export make_parents
 #' 
 #' @examples
