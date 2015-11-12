@@ -17,11 +17,98 @@ double haldane(double d);
 // This is the main function to export (haploid version)
 //' @title Inferring hidden ancestry states from haploids
 //'
-//' @description stuff goes here
+//' @description Uses the forward-backward algorithm to estimate ancestral genotypes 
+//' along a given chromosome for a given genotyped tetrad or simulated data.
+//'
+//' @param snp_locations a numeric vector specifying the locations of each snp (in bps). This
+//' vector is assumed to be ordered (sorted from smallest to largest snp).
+//' 
+//' @param p0 a vector specifying the number of reads that mapped to parent 0. 
+//' p0 is assumed to be in the smae order as snp_locations. 
+//'
+//' @param p1 a vector specifying the number of reads that mapped to parent 1. 
+//' p1 is assumed to be in the smae order as snp_locations.
+//'
+//' @param p_assign a value specifying the assignment probabilty (see details).
+//'
+//' @param p_trans a numeric specifying the transition probability of going from
+//' one hidden state to the next. This is the same as scale in other functions and
+//' is the genome-wide recombination rate (Morgans / bp). p_trans is assumed to be 
+//' between 0 and 1 but in practice it is usually quite small. 
+//'
+//' @details \code{fb_haploid} attempts to estimate 
+//' parental genotypic 'states' along a chromosome given empirical or 
+//' simulated F2 cross data. 
+//' Next-generation data inherits both sequencing error and missing data 
+//' -- especially when sequencing coverage is low. Also, parental populations
+//' can be polymorphic with respect to gene frequencies before admixture. In these cases 
+//' the parental state is ambiguous or unknown. \code{fb_haploid} takes 
+//' these uncertainties into account and estimates the most likely sequence of
+//' ancestry. 
+//' 
+//' The three steps taken in \code{fb_haploid} are: 
+//' \enumerate{
+//'  \item Calculate forward probabilities for each state (5' to 3')
+//'  \item Calculate backward probabilities for each state (3' to 5')
+//'  \item From these two probabilities, calculate the posterior probability
+//'  that a snp location is of a given parental state.
+//' } 
+//' 
+//' The two element vector of forward probabilities for each parental state 
+//' \equ{f_{i}} at each position, i, are calculated as:
+//' \dequ{f_{i} = e_{i}T_{i}f_{i-1}}
+//' 
+//' where \equ{e_{i}} is the emission probabilities for each state (see below), \equ{T_{i}}
+//' is a 2-by-2 matrix describing the transition (recombination) probabilities
+//' between two states, and \equ{f_{i-1}} is the forward probability at the 
+//' previous position along the chromosome (5' of position i). It is assumed 
+//' that each state is equally likely to occur at the first position. 
+//' 
+//' 
+//' The emmission probabilities are calculated independently for 
+//' each snp and depends on the sequence reads assigned to parent "0" 
+//' and parent "1" and \code{p.assign}. The emission probabilities are
+//' calculated using the binomial equation. For example, the emission
+//' probability for parental state "0" at snp position i is: 
+//' 
+//' \dequ{e_{i,0} = {n \choose{k0}} p^{k0} (1-p)^{n-k0}}
+//' 
+//' where n is the sum of the number of reads from both parents and p 
+//' is \code{p.assign}. 
+//' 
+//' Like the emission probabilities, the transition probabilities are also
+//' calculated for each snp position. This accounts for the displacement 
+//' between snps.  For example if the per base recombination rate is 
+//' 0.001 and two snps are 10 base pairs apart, the transition probability of
+//' is 0.01 (i.e., the probability of not recombining would be 0.99).
+//' 
+//' To avoid underflow, we rescale the forward (and backward) probabilities
+//' each iteration to that they sum to unity. 
+//' 
+//' The backward probabilities are calculated similarly but in the 3' to 5' 
+//' direction. It is assumed that the backward probability is equally likely 
+//' in each state. Following Durbin et al (1998) the backward probability at
+//' snp position i is: 
+//' 
+//' \dequ{b_{i} = T_{i}e_{i+1}b_{i+1}}
+//' 
+//' Again, these probabilities are rescale to avoid underflow. 
+//' 
+//' The posterior probability that the state at position i is k, \equ{\pi_{i}=k} 
+//' given the observed sequence read counts for each parent at position i, \equ{x_{i}}
+//' is calculated by:  
+//' 
+//' \dequ{P(\pi_{i} = k | x_{i}) = \frac{f_{i} b{i}}{\sum\limits_{k=0}^{1} f_{i}^{(k)} b{i}^{(k)}}}
+//' 
+//' where the super scripts in the denominator are vector indices. 
+//' 
+//' Finally, we can determine the log likelihood of the whole sequence 
+//' of observations by summing up the log of all the scale factors in the 
+//' forward probability calculation.
 //'
 //' @examples
 //' set.seed(1234567)        # For reproducibility
-//' n_spores <- 1            # number of tetrads (meiosis events)
+//' n_spores <- 1            # number of spores
 //' l <- 75                  # number of snps to simulate
 //' c <- 3.5e-05             # recombination rate between snps (Morgan/bp)
 //' snps <- c(1:l)*1.3e4     # snps are evenly spaced 20kbp apart
@@ -31,10 +118,10 @@ double haldane(double d);
 //' sim1 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
 //'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
 //'  length.conversion=2e3, coverage=coverage)
-//' fb_haploid(snp_locations=sim1$Snp, k0=sim1$p0, k1=sim1$p1, p_assign=p_a, p_trans=c)
+//' fb_haploid(snp_locations=sim1$Snp, p0=sim1$p0, p1=sim1$p1, p_assign=p_a, p_trans=c)
 //' @export
 // [[Rcpp::export]]
-DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
+DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double p_trans) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
@@ -78,8 +165,8 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVecto
     // 2) calculate emission probabilities for all states at all positions
     for(int i=0; i<n_snps; i++)
     {
-        emissions(i,0) = nChoosek((k0[i]+k1[i]),k0[i])*pow(p_assign,k0[i])*pow((1 - p_assign),((k0[i]+k1[i])-k0[i]));
-        emissions(i,1) = nChoosek((k0[i]+k1[i]),k1[i])*pow(p_assign,k1[i])*pow((1 - p_assign),((k0[i]+k1[i])-k1[i]));
+        emissions(i,0) = nChoosek((p0[i]+p1[i]),p0[i])*pow(p_assign,p0[i])*pow((1 - p_assign),((p0[i]+p1[i])-p0[i]));
+        emissions(i,1) = nChoosek((p0[i]+p1[i]),p1[i])*pow(p_assign,p1[i])*pow((1 - p_assign),((p0[i]+p1[i])-p1[i]));
         // cout << emissions(i,1) << "\t" << emissions(i,2) << endl;
     }
     
@@ -204,8 +291,8 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVecto
     
     DataFrame out = DataFrame::create(
                                       Named("Snp")=snp_locations,
-                                      Named("p0")=k0,
-                                      Named("p1")=k1,
+                                      Named("p0")=p0,
+                                      Named("p1")=p1,
                                       Named("emiss")=emissions,
                                       Named("forward")=forward,
                                       Named("backward")=backward,
@@ -221,10 +308,31 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVecto
 
 //' @title Inferring hidden ancestry states from diploids
 //'
-//' @description describe diploid alogorithm here.
+//' @description stuff goes here
+//'
+//' @examples
+//' set.seed(1234567)        # For reproducibility
+//' n_spores <- 1            # number of spores
+//' l <- 75                  # number of snps to simulate
+//' c <- 3.5e-05             # recombination rate between snps (Morgan/bp)
+//' snps <- c(1:l)*1.3e4     # snps are evenly spaced 20kbp apart
+//' p_a <- 0.95              # assignment probability
+//' coverage <- 2.1          # mean coverage
+//' # Now simulate two haploids
+//' sim1 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
+//'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
+//'  length.conversion=2e3, coverage=coverage)
+//' sim2 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
+//'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
+//'  length.conversion=2e3, coverage=coverage)
+//' # Now merge the two haploids to make a diploid
+//' p0 <- sim1$p0+sim2$p0
+//' p1 <- sim1$p1+sim2$p1
+//' res <- fb_diploid(snp_locations=sim1$Snp, p0=p0, p1=p1, p_assign=p_a, p_trans=c)
+//' res
 //'@export
 // [[Rcpp::export]]
-DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
+DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double p_trans) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
@@ -268,9 +376,9 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVecto
     // 2) calculate emission probabilities for all states at all positions
     for(int i=0; i<n_snps; i++)
     {
-        emissions(i,0) = nChoosek((k0[i]+k1[i]),k0[i])*pow(p_assign,k0[i])*pow((1 - p_assign),((k0[i]+k1[i])-k0[i]));
-        emissions(i,1) = nChoosek((k0[i]+k1[i]),k0[i])*pow(0.5, k1[i])*pow(0.5, k0[i]);
-        emissions(i,2) = nChoosek((k0[i]+k1[i]),k1[i])*pow(p_assign,k1[i])*pow((1 - p_assign),((k0[i]+k1[i])-k1[i]));
+        emissions(i,0) = nChoosek((p0[i]+p1[i]),p0[i])*pow(p_assign,p0[i])*pow((1 - p_assign),((p0[i]+p1[i])-p0[i]));
+        emissions(i,1) = nChoosek((p0[i]+p1[i]),p0[i])*pow(0.5, p1[i])*pow(0.5, p0[i]);
+        emissions(i,2) = nChoosek((p0[i]+p1[i]),p1[i])*pow(p_assign,p1[i])*pow((1 - p_assign),((p0[i]+p1[i])-p1[i]));
         // cout << emissions(i,0) << "\t" << emissions(i,1) << "\t" << emissions(i,2) << endl;
     }
     
@@ -444,8 +552,8 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVecto
     
     DataFrame out = DataFrame::create(
                                       Named("Snp")=snp_locations,
-                                      Named("p0")=k0,
-                                      Named("p1")=k1,
+                                      Named("p0")=p0,
+                                      Named("p1")=p1,
                                       Named("emiss")=emissions,
                                       Named("forward")=forward,
                                       Named("backward")=backward,
