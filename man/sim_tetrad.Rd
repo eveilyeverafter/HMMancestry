@@ -64,7 +64,7 @@ coverage <- 1            # mean coverage
 # Now simulate
 sim100 <- sim_tetrad(n.tetrads=n_tetrads, scale=c, snps=snps,
 	p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3,
-	length.conversion=2e3, coverage=2)
+	length.conversion=2e3, coverage=coverage)
 sim100
 }
 \author{
