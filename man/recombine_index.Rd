@@ -8,7 +8,8 @@ recombine_index(scale, snps)
 }
 \arguments{
 \item{\code{scale}}{either vector of length 1 specifying the genome-wide recombination rate (Morgans/bp)
-or a vector of length(snps)-1 specifying the recombination rate between all snps. Rates must be positive.}
+or a vector of length \code{snps-1} specifying the recombination rate between all snps. In either
+case rates must be positive.}
 
 \item{\code{snps}}{a vector gving the locations of snps along a chromosome}
 }
@@ -24,9 +25,9 @@ any two snps given their physical distance and the specified recombination rate.
 set.seed(1234567)
 # Simulating recombination across 1000 loci randomly spaced
 # along a 200kbp chromosome
-chromSize <- 2e5 # Chromosome size
-l <- 1e3 # number of loci to simulate
-c <- 1e-04 # Morgans/bp
+chromSize <- 2e5 		# Chromosome size
+l <- 1e3 				# number of loci to simulate
+c <- 1e-04 				# Morgans/bp
 snps <- sort(sample(size=l, 1:chromSize, replace=FALSE))
 # Find recombination points between all the snps
 recomb_points <- recombine_index(scale=c, snps=snps)

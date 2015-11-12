@@ -94,7 +94,7 @@
 #' 
 #' @return A list of class \code{forward.backward} containing 4 elements corresponding to each 
 #' of the four tetrads. Each element is itself a list containing:
-#' \describe{
+#' \itemize{
 #'     \item The input snp.data
 #'     \item spore_number an integer specifying the spore number
 #'     \item tetrad.id an integer specifying the tetrad number

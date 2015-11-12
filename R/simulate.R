@@ -137,14 +137,14 @@ recombine_index <- function(scale, snps){
 #' 
 #' @return an object of class \code{recombine} that contains the following data:
 #' \itemize{
-#' 	\item{parents}{input data}
-#' 	\item{r.index}{input data}
-#' 	\item{m.rate}{input data}
-#' 	\item{f.cross}{input data}
-#' 	\item{f.convert}{input data}
-#' 	\item{length.conversion}{input data}
-#' 	\item{chromatids.mutated_snps}{a list giving the genotypes of 4 chromatids (two pairs of sister chromatids) following mutation}
-#' 	\item{chromatids.recombined}{a list giving the genotypes of 4 chromatids following recombination}
+#' 	\item{parents}{ input data}
+#' 	\item{r.index}{ input data}
+#' 	\item{m.rate}{ input data}
+#' 	\item{f.cross}{ input data}
+#' 	\item{f.convert}{ input data}
+#' 	\item{length.conversion}{ input data}
+#' 	\item{chromatids.mutated_snps}{ a list giving the genotypes of 4 chromatids (two pairs of sister chromatids) following mutation}
+#' 	\item{chromatids.recombined}{ a list giving the genotypes of 4 chromatids following recombination}
 #' }
 #' 
 #' 
@@ -155,21 +155,19 @@ recombine_index <- function(scale, snps){
 #' @export recombine
 #' 
 #' @examples
-set.seed(1234567)        # For reproducability
-l <- 50                  # number of snps to simulate
-c <- 3e-05               # recombination rate between snps (Morgan/bp)
-snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
-p <- make_parents(snps)  # make the parents
-#
-# The recombination indeces are:
-r_points <- recombine_index(scale=c, snps=snps) 
-#
-# Now recombine the parents:
-recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
-	f.cross=0.6, f.convert=0.2, length.conversion=20) 
-
-
-recomb_sim
+#' set.seed(1234567)        # For reproducability
+#' l <- 50                  # number of snps to simulate
+#' c <- 3e-05               # recombination rate between snps (Morgan/bp)
+#' snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
+#' p <- make_parents(snps)  # make the parents
+#' #
+#' # The recombination indeces are:
+#' r_points <- recombine_index(scale=c, snps=snps) 
+#' #
+#' # Now recombine the parents:
+#' recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
+#' 	f.cross=0.6, f.convert=0.2, length.conversion=15000) 
+#' recomb_sim
 
 
 recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
@@ -198,7 +196,7 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 			# If recobomination only with non-sister chromatids is allowed:
 			vals <- as.numeric(as.data.frame(chromatids.recombined)[i,])
 
-			# In some cases of frequent gene conversion, vals will not have two 0s and two 1s. 
+			# In some rare cases of frequent gene conversion, vals will not have two 0s and two 1s. 
 			# If that's the case, sample 1 or 2 and 3 or 4. 
 			if(sum(vals)==2){
 				picked.chromatids <- c(sample(which(vals==0), 1), sample(which(vals==1), 1))
@@ -223,13 +221,15 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 					length_of_conversion <- rpois(n=1,lambda=length.conversion)
 					# if the length of the tract extends pass the chromosome then stop at the end of the chromosome.
 					# Otherwise, create a gene conversion tract of length length_of_conversion starting at the 
-					# recombination point. 
-					if( (i+1+length_of_conversion) > l){
-						chromatids.recombined[[to_convert]][c((i+1):l)] <- sapply(chromatids.recombined[[to_convert]][c((i+1):l)], function(j){switch_values(j)})
-					} else {
-						chromatids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))] <- sapply(chromatids.recombined[[to_convert]][c((i+1):(i+1+length_of_conversion))], function(j){switch_values(j)})
-					}
 
+					# find which snps are to the 3' of i, x
+					x = which(p$snp>p$snp[i])
+					# and the snps that are 5' of (length_of_conversion+i), y
+					y = which(p$snps<(p$snps[i]+length_of_conversion))
+					# If there are snps in both cats then they will be converted:
+					if(length(intersect(x,y))!=0){
+						chromatids.recombined[[to_convert]][c(intersect(x,y))] <- sapply(chromatids.recombined[[to_convert]][c(intersect(x,y))], function(j){switch_values(j)})
+					}
 				}
 			# Save results:
 			chromatids.recombined[[picked.chromatids[1]]] <- chromatids[,1]

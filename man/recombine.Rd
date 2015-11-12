@@ -2,22 +2,22 @@
 % Please edit documentation in R/simulate.R
 \name{recombine}
 \alias{recombine}
-\title{Simulate recombination}
+\title{Simulate recombination (crossovers or non-crossovers) along a chromosome}
 \usage{
 recombine(parents, r.index, mu.rate = 0, f.cross = 0.5, f.convert = 0,
   length.conversion = 20)
 }
 \arguments{
-\item{parents}{an object of class \code{parent.genomes} specifying the parental genotypes
+\item{parents}{an object of class \code{parent.genomes} specifying the parental ancestry
 at each simulated snp.}
 
-\item{r.index}{a vector of length \code{L-1} specifying whether a recombination is to be
+\item{r.index}{a vector of length \code{snps-1} specifying whether a recombination is to be
 simulated (1) or not (0) in between two adjacent snps.}
 
 \item{mu.rate}{a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate.}
 
 \item{f.cross}{a numeric between 0 and 1 (inclusive) giving the frequency of recombination
-events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.}
+events that result in crossing over. This is same as 1 minus the frequency of non-crossovers.}
 
 \item{f.convert}{a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion
 during recombination.}
@@ -27,41 +27,55 @@ tract.}
 }
 \value{
 an object of class \code{recombine} that contains the following data:
-\describe{
-	\item{parents}{input data}
-	\item{r.index}{input data}
-	\item{m.rate}{input data}
-	\item{f.cross}{input data}
-	\item{f.convert}{input data}
-	\item{length.conversion}{input data}
-	\item{chromatids.mutated_snps}{a list giving the genotypes of 4 chromatids (two pairs of sister chromatids) following mutation}
-	\item{chromatids.recombined}{a list giving the genotypes of 4 chromatids following recombination}
+\itemize{
+	\item{parents}{ input data}
+	\item{r.index}{ input data}
+	\item{m.rate}{ input data}
+	\item{f.cross}{ input data}
+	\item{f.convert}{ input data}
+	\item{length.conversion}{ input data}
+	\item{chromatids.mutated_snps}{ a list giving the genotypes of 4 chromatids (two pairs of sister chromatids) following mutation}
+	\item{chromatids.recombined}{ a list giving the genotypes of 4 chromatids following recombination}
 }
 }
 \description{
-This function simulates recombination between two parent genomes of class
+This function simulates recombination between two parent chromosomes generated from class
 \code{parent.genomes}.
 }
 \details{
-(to do)
+This function simulates crossover events (with or without gene conversions)
+and non-crossover events given the parental snps and location of recombination events.
+First, parental chromosomes are duplicated into 2 pairs of sister chromatids. During this step
+mutations occur at rate \code{mu.rate} that switch parental alleles. Second, recombination is
+simulated by systematically going down the length of the chromosome. At recombination points, idenitfied in \code{r.index},
+two non-sister chromatids are picked at random. Third, a CO or NCO is simulated; this is done
+at a frequency of f.cross or 1-f.cross, respectively. If a CO occurs, the genotypes of the 3'
+end of the non-sister chromatids are simply switched. If a NCO occurs, no such switch takes place.
+Note that is is impossible to detect NCO events without an associated gene conversion tract.
+Following every CO or NCO event gene conversion is simulated at a rate of f.convert. During a
+gene conversion, one of the two unpicked chromatids' genotypes are switched. The length of the
+gene conversion tract is sampled from a poission distribution with mean (variance) of length.conversion.
+Note that the gene conversion tract will stop at the end of the chromosme if necessary.
 }
 \examples{
-set.seed(1234567) # For reproducability
-l <- 50 # number of loci to simulate
-scale <- 0.01; snps <- 1:l;
-r <- recombine_index(scale, snps)
-p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-p <- make_parents(l) # make the parents
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=0, length.conversion=10) # recombine parents
+set.seed(1234567)        # For reproducability
+l <- 50                  # number of snps to simulate
+c <- 3e-05               # recombination rate between snps (Morgan/bp)
+snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
+p <- make_parents(snps)  # make the parents
+#
+# The recombination indeces are:
+r_points <- recombine_index(scale=c, snps=snps)
+#
+# Now recombine the parents:
+recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05,
+	f.cross=0.6, f.convert=0.2, length.conversion=15000)
 recomb_sim
 }
 \author{
 Tyler D. Hether
 }
-\references{
-(to do: refernce a crossover vs non-crossover paper)
-}
 \seealso{
-\code{\link{parent_genomes}}, \code{\link{recombine_index}}
+\code{\link{recombine_index}}
 }
 
