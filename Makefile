@@ -16,7 +16,7 @@ install:
 build:
 	if [ -e HMMancestry.pdf ]; then rm HMMancestry.pdf; fi
 	R CMD build .
-	R CMD Rd2pdf -M man/ --title='HMMancestry' -o "HMMancestry.pdf"
+	R CMD Rd2pdf -M ./ --title='HMMancestry' -o "HMMancestry.pdf"
 
 check: build
 	R CMD check --no-manual `ls -1tr HMMancestry*gz | tail -n1`
