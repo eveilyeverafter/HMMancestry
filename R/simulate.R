@@ -426,6 +426,68 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
     return(out)
 }
 
+
+#' @title Simulate random spores en masse
+#' 
+#' @description This is a wrapper function of many other functions that simulates a given number of
+#' haploids each recombinant between two parents.  
+#' 
+#' @param n.spores An integer specifying the number of spores to simulate.
+#' 
+#' @param l an integer describing the number of loci to simulate.
+#' 
+#' @param rec a vector of length \code{l-1} that contains the the recombation rate 
+#' between each snp.
+#' 
+#' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
+#' correct sequencing assignment.
+#' 
+#' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
+#' 
+#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination 
+#' events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
+#' 
+#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion 
+#' during recombination.
+#' 
+#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
+#' tract.
+#' 
+#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
+#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
+#' 
+#' @return A list of length n.spores. Each element of the list is of class \code{single.spore}, 
+#' which contains three elements: 
+#' \describe{
+#' 	\item{p0.assign}{The number of reads that were simulated for parent 0.}
+#' 	\item{p1.assign}{The number of reads taht were simulated for parent 1.}
+#' 	\item{snps}{The snp id along the simulated chromosome.}
+#' } 
+#' 
+#' @seealso \code{\link{recombine}}, \code{\link{make_parents}}, 
+#' \code{\link{simulate_coverage}}, \code{\link{recombine_index}}, \code{\link{id_hotspots}}
+#' 
+#' @author Tyler D. Hether 
+#' 
+#' @export sim_en_masse
+
+sim_en_masse <- function(n.spores, scale, snps, p.assign, mu.rate, f.cross, f.convert, length.conversion, coverage){
+
+    out <- lapply(1:n.spores, function(Z, ...){
+
+        r <- recombine_index(scale, snps)
+        p <- make_parents(snps)
+        recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
+                f.convert=f.convert, length.conversion=length.conversion)
+        sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
+        to.pick <- sample(c(1:4), 1)
+        class(sim_reads[[to.pick]]) <- list("single.spore")
+        return(sim_reads[[to.pick]])
+    })
+    class(out) <- c("list", "en.masse")
+    return(out)
+}
+
 # Minor functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Function to make sure values in a vector, a, are between x and y, inclusive:
