@@ -31,9 +31,9 @@ double haldane(double d);
 //'
 //' @param p_assign a value specifying the assignment probabilty (see details).
 //'
-//' @param p_trans a numeric specifying the transition probability of going from
-//' one hidden state to the next. This is the same as scale in other functions and
-//' is the genome-wide recombination rate (Morgans / bp). p_trans is assumed to be 
+//' @param scale a numeric specifying the transition probability of going from
+//' one hidden state to the next. This
+//' is the genome-wide recombination rate (Morgans / bp). scale is assumed to be 
 //' between 0 and 1 but in practice it is usually quite small. 
 //'
 //' @details \code{fb_haploid} attempts to estimate 
@@ -118,10 +118,10 @@ double haldane(double d);
 //' sim1 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
 //'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
 //'  length.conversion=2e3, coverage=coverage)
-//' fb_haploid(snp_locations=sim1$Snp, p0=sim1$p0, p1=sim1$p1, p_assign=p_a, p_trans=c)
+//' fb_haploid(snp_locations=sim1$Snp, p0=sim1$p0, p1=sim1$p1, p_assign=p_a, scale=c)
 //' @export
 // [[Rcpp::export]]
-DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double p_trans) {
+DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double scale) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
@@ -160,7 +160,7 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     
     // 1) establish matrices/vectors:
     NumericMatrix emissions(n_snps, 2), forward(n_snps,2), backward(n_snps,2), posterior(n_snps,2);
-    NumericVector scale(n_snps), scaleb(n_snps), states_inferred(n_snps);
+    NumericVector scalef(n_snps), scaleb(n_snps), states_inferred(n_snps);
     
     // 2) calculate emission probabilities for all states at all positions
     for(int i=0; i<n_snps; i++)
@@ -181,13 +181,13 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     // cout << endl;
     
     // Calculate the scale factor for each snp (used to avoid underflow)
-    scale[0] = (forward(0,0) + forward(0,1));
-    // cout << "The first scale factor is " << scale[0] << endl;
+    scalef[0] = (forward(0,0) + forward(0,1));
+    // cout << "The first scale factor is " << scalef[0] << endl;
     
     // Rescale the first forward probabilites for the first snp
     for(int i=0;i<2;i++)
     {
-        forward(0,i) = forward(0,i)/scale[0];
+        forward(0,i) = forward(0,i)/scalef[0];
         // cout << "Rescaled forward is " << forward(0,i) << "\t";
     }
     
@@ -197,10 +197,10 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     {
         // int i=1;
         // std::cout << displace[i-1] << "\t";
-        double a(1-(haldane(displace[i-1]*p_trans)*0.5));
-        double b((haldane(displace[i-1]*p_trans)*0.5));
+        double a(1-(haldane(displace[i-1]*scale)*0.5));
+        double b((haldane(displace[i-1]*scale)*0.5));
         double c(b);
-        double d(1-(haldane(displace[i-1]*p_trans)*0.5));
+        double d(1-(haldane(displace[i-1]*scale)*0.5));
         
         double e(emissions(i,0)), f(0.0), g(0.0), h(emissions(i,1));
         
@@ -211,10 +211,10 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
         //cout << "E = " << e << " " << f << " " << g << " " << h << endl;
         //cout << "F before scaling = " << forward(i,0) << " " << forward(i,1) << endl;
         // Resscale
-        scale[i] = (forward(i,0) + forward(i,1));
-        //cout << "The scaling is: " << scale[i] << endl;
-        forward(i,0) = forward(i,0)/scale[i];
-        forward(i,1) = forward(i,1)/scale[i];
+        scalef[i] = (forward(i,0) + forward(i,1));
+        //cout << "The scaling is: " << scalef[i] << endl;
+        forward(i,0) = forward(i,0)/scalef[i];
+        forward(i,1) = forward(i,1)/scalef[i];
         //cout << "F after scaling = " << forward(i,0) << " " << forward(i,1) << endl;
     }
     
@@ -228,12 +228,12 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     for(int i=(n_snps-2); i>=0; i--)
     {
         // std::cout << displace[i] << "\t";
-        // double a(1-(haldane(displace[i]*p_trans))), b((haldane(displace[i]*p_trans)), c(b), d(1-(haldane(displace[i]*p_trans)));
+        // double a(1-(haldane(displace[i]*scale))), b((haldane(displace[i]*scale)), c(b), d(1-(haldane(displace[i]*scale)));
         
-        double a(1-(haldane(displace[i]*p_trans)*0.5));
-        double b(haldane(displace[i]*p_trans)*0.5);
+        double a(1-(haldane(displace[i]*scale)*0.5));
+        double b(haldane(displace[i]*scale)*0.5);
         double c(b);
-        double d(1-(haldane(displace[i]*p_trans)*0.5));
+        double d(1-(haldane(displace[i]*scale)*0.5));
         
         
         double e(emissions(i+1,0)), f(0.0), g(0.0), h(emissions(i+1,1));
@@ -276,7 +276,7 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     double lnL(0.0);
     for(int i=0; i<n_snps; i++)
     {
-        lnL+=log(scale[i]);
+        lnL+=log(scalef[i]);
     }
     //cout << "lnL = " << lnL << endl;
     
@@ -296,7 +296,7 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
                                       Named("emiss")=emissions,
                                       Named("forward")=forward,
                                       Named("backward")=backward,
-                                      Named("Fscale")=scale,
+                                      Named("Fscale")=scalef,
                                       Named("Bscale")=scaleb,
                                       Named("posterior")=posterior,
                                       Named("states_inferred")=states_inferred,
@@ -328,11 +328,11 @@ DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVecto
 //' # Now merge the two haploids to make a diploid
 //' p0 <- sim1$p0+sim2$p0
 //' p1 <- sim1$p1+sim2$p1
-//' res <- fb_diploid(snp_locations=sim1$Snp, p0=p0, p1=p1, p_assign=p_a, p_trans=c)
+//' res <- fb_diploid(snp_locations=sim1$Snp, p0=p0, p1=p1, p_assign=p_a, scale=c)
 //' res
 //'@export
 // [[Rcpp::export]]
-DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double p_trans) {
+DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double scale) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
@@ -371,7 +371,7 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     
     // 1) establish matrices/vectors:
     NumericMatrix emissions(n_snps, 3), forward(n_snps,3), backward(n_snps,3), posterior(n_snps,3);
-    NumericVector scale(n_snps), scaleb(n_snps), states_inferred(n_snps);
+    NumericVector scalef(n_snps), scaleb(n_snps), states_inferred(n_snps);
     
     // 2) calculate emission probabilities for all states at all positions
     for(int i=0; i<n_snps; i++)
@@ -393,13 +393,13 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     // cout << endl;
     
     // Calculate the scale factor for each snp (used to avoid underflow)
-    scale[0] = (forward(0,0) + forward(0,1) + forward(0,2));
-    // cout << "The first scale factor is " << scale[0] << endl;
+    scalef[0] = (forward(0,0) + forward(0,1) + forward(0,2));
+    // cout << "The first scale factor is " << scalef[0] << endl;
     
     // Rescale the first forward probabilites for the first snp
     for(int i=0;i<3;i++)
     {
-        forward(0,i) = forward(0,i)/scale[0];
+        forward(0,i) = forward(0,i)/scalef[0];
         // cout << "Rescaled forward is " << forward(0,i) << "\t";
     }
     
@@ -407,7 +407,7 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     
     for(int i=1; i<n_snps; i++)
     {
-        double D(displace[i-1]*p_trans); // mapping distance used for haldane function
+        double D(displace[i-1]*scale); // mapping distance used for haldane function
         double R(haldane(D)*0.5); 
         // cout << D << endl;
         
@@ -442,11 +442,11 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
         //cout << "E = " << e << " " << f << " " << g << " " << h << endl;
         //cout << "F before scaling = " << forward(i,0) << " " << forward(i,1) << endl;
         // Resscale
-        scale[i] = (forward(i,0) + forward(i,1) + forward(i,2));
-        //cout << "The scaling is: " << scale[i] << endl;
-        forward(i,0) = forward(i,0)/scale[i];
-        forward(i,1) = forward(i,1)/scale[i];
-        forward(i,2) = forward(i,2)/scale[i];
+        scalef[i] = (forward(i,0) + forward(i,1) + forward(i,2));
+        //cout << "The scaling is: " << scalef[i] << endl;
+        forward(i,0) = forward(i,0)/scalef[i];
+        forward(i,1) = forward(i,1)/scalef[i];
+        forward(i,2) = forward(i,2)/scalef[i];
         // cout << "F after scaling = " << forward(i,0) << " " << forward(i,1) << " " << forward(i,2) << endl;
     }
     
@@ -460,7 +460,7 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     // For the rest:
     for(int i=(n_snps-2); i>=0; i--)
     {
-        double D(displace[i]*p_trans); // mapping distance used for haldane function
+        double D(displace[i]*scale); // mapping distance used for haldane function
         // R = recombination rate between ancestry i to j (or j to i)
         // cout << D << endl;
         double R(haldane(D)*0.5); 
@@ -528,7 +528,7 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     double lnL(0.0);
     for(int i=0; i<n_snps; i++)
     {
-        lnL+=log(scale[i]);
+        lnL+=log(scalef[i]);
         
     }
     //cout << "lnL = " << lnL << endl;
@@ -557,7 +557,7 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
                                       Named("emiss")=emissions,
                                       Named("forward")=forward,
                                       Named("backward")=backward,
-                                      Named("Fscale")=scale,
+                                      Named("Fscale")=scalef,
                                       Named("Bscale")=scaleb,
                                       Named("posterior")=posterior,
                                       Named("states_inferred")=states_inferred,

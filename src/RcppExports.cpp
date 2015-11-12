@@ -6,32 +6,32 @@
 using namespace Rcpp;
 
 // fb_haploid
-DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP HMMancestry_fb_haploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+DataFrame fb_haploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double scale);
+RcppExport SEXP HMMancestry_fb_haploid(SEXP snp_locationsSEXP, SEXP p0SEXP, SEXP p1SEXP, SEXP p_assignSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type snp_locations(snp_locationsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type k0(k0SEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type p0(p0SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type p1(p1SEXP);
     Rcpp::traits::input_parameter< double >::type p_assign(p_assignSEXP);
-    Rcpp::traits::input_parameter< double >::type p_trans(p_transSEXP);
-    __result = Rcpp::wrap(fb_haploid(snp_locations, k0, k1, p_assign, p_trans));
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
+    __result = Rcpp::wrap(fb_haploid(snp_locations, p0, p1, p_assign, scale));
     return __result;
 END_RCPP
 }
 // fb_diploid
-DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP HMMancestry_fb_diploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVector p1, double p_assign, double scale);
+RcppExport SEXP HMMancestry_fb_diploid(SEXP snp_locationsSEXP, SEXP p0SEXP, SEXP p1SEXP, SEXP p_assignSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type snp_locations(snp_locationsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type k0(k0SEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type p0(p0SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type p1(p1SEXP);
     Rcpp::traits::input_parameter< double >::type p_assign(p_assignSEXP);
-    Rcpp::traits::input_parameter< double >::type p_trans(p_transSEXP);
-    __result = Rcpp::wrap(fb_diploid(snp_locations, k0, k1, p_assign, p_trans));
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
+    __result = Rcpp::wrap(fb_diploid(snp_locations, p0, p1, p_assign, scale));
     return __result;
 END_RCPP
 }
