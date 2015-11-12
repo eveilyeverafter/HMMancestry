@@ -155,19 +155,21 @@ recombine_index <- function(scale, snps){
 #' @export recombine
 #' 
 #' @examples
-#' set.seed(1234567) 		# For reproducability
-#' l <- 50 					# number of snps to simulate
-#' c <- 3e-05				# recombination rate between snps (Morgan/bp)
-#' snps <- c(1:l)*1e4  		# snps are evenly spaced 10kbp apart
-#' p <- make_parents(snps)	# make the parents
-#' #
-#' # The recombination indeces are:
-#' r_points <- recombine_index(scale=c, snps=snps) 
-#' #
-#' # Now recombine the parents:
-#' recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
-#' 	f.cross=0.6, f.convert=0.2, length.conversion=20) 
-#' recomb_sim
+set.seed(1234567)        # For reproducability
+l <- 50                  # number of snps to simulate
+c <- 3e-05               # recombination rate between snps (Morgan/bp)
+snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
+p <- make_parents(snps)  # make the parents
+#
+# The recombination indeces are:
+r_points <- recombine_index(scale=c, snps=snps) 
+#
+# Now recombine the parents:
+recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
+	f.cross=0.6, f.convert=0.2, length.conversion=20) 
+
+
+recomb_sim
 
 
 recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
@@ -196,8 +198,14 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 			# If recobomination only with non-sister chromatids is allowed:
 			vals <- as.numeric(as.data.frame(chromatids.recombined)[i,])
 
-			picked.chromatids <- c(sample(which(vals==0), 1), sample(which(vals==1), 1))
-	
+			# In some cases of frequent gene conversion, vals will not have two 0s and two 1s. 
+			# If that's the case, sample 1 or 2 and 3 or 4. 
+			if(sum(vals)==2){
+				picked.chromatids <- c(sample(which(vals==0), 1), sample(which(vals==1), 1))
+			} else {
+				picked.chromatids <- c(sample(c(1,2), 1), sample(c(3,4), 1))
+			}
+
 			# Recombine them:
 			chromatids <- data.frame(one=chromatids.recombined[[picked.chromatids[1]]], 
 					   two=chromatids.recombined[[picked.chromatids[2]]])
