@@ -174,7 +174,7 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 		stop(paste("Object ", parents, " needs to be of class parent.genomes", sep=""))
 	}
 	l <- length(parents$p1)
-
+	p <- parents 
 	# S-phase and mutation
 	chromatids.orig <- list(p1_1=parents$p1, p1_2=parents$p1, p2_1=parents$p2, p2_2=parents$p2)
 	chromatids.mutated_snps <- lapply(chromatids.orig, function(i, ...){
@@ -375,6 +375,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 #' @export sim_tetrad
 #' 
 #' @examples
+#' # Simulating 100 recombination events
 #' set.seed(1234567)        # For reproducibility
 #' n_tetrads <- 100         # number of tetrads (meiosis events)
 #' l <- 50                  # number of snps to simulate
@@ -390,21 +391,20 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 
 sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.convert, 
         length.conversion, coverage, chr.name="I"){
-	p <- make_parents(snps)
+	parents <- make_parents(snps)
     
     res <- lapply(1:n.tetrads, function(Z, ...){
 
         r <- recombine_index(scale, snps)
-        # print(sum(r)/snps[l])
-        
-        recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
+
+        recomb_sim <- recombine(parents=parents, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
                 f.convert=f.convert, length.conversion=length.conversion)
         sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
         class(sim_reads) <- list("individual.tetrad")
         return(sim_reads)
     })
     
-    # Convert to proper dataframe:
+    # Convert to a dataframe:
     dat0 <- lapply(1:length(res), function(x){
 
       one <- res[[x]][[1]]
@@ -423,95 +423,6 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
     out <- do.call(rbind, dat0)
 
     class(out) <- c("data.frame", "tetrad")
-    return(out)
-}
-
-
-
-
-
-
-
-# tmpres <- lapply(1:length(out), function(x){
-# 	tmp <- out[[x]][[1]]$states_given
-
-# 	return(sum(abs(tmp[2:l] - tmp[1:(l-1)]))/(range(snps)[2]-range(snps)[1]))
-# 	})
-
-
-
-
-
-
-
-
-#' @title Simulate random spores en masse
-#' 
-#' @description This is a wrapper function of many other functions that simulates a given number of
-#' haploids each recombinant between two parents.  
-#' 
-#' @param n.spores An integer specifying the number of spores to simulate.
-#' 
-#' @param l an integer describing the number of loci to simulate.
-#' 
-#' @param rec a vector of length \code{l-1} that contains the the recombation rate 
-#' between each snp.
-#' 
-#' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
-#' correct sequencing assignment.
-#' 
-#' @param mu.rate a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate. 
-#' 
-#' @param f.cross a numeric between 0 and 1 (inclusive) giving the frequency of recombination 
-#' events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.
-#' 
-#' @param f.convert a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion 
-#' during recombination.
-#' 
-#' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
-#' tract.
-#' 
-#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
-#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
-#' 
-#' @return A list of length n.spores. Each element of the list is of class \code{single.spore}, 
-#' which contains three elements: 
-#' \describe{
-#' 	\item{p0.assign}{The number of reads that were simulated for parent 0.}
-#' 	\item{p1.assign}{The number of reads taht were simulated for parent 1.}
-#' 	\item{snps}{The snp id along the simulated chromosome.}
-#' } 
-#' 
-#' @seealso \code{\link{recombine}}, \code{\link{make_parents}}, 
-#' \code{\link{simulate_coverage}}, \code{\link{recombine_index}}, \code{\link{id_hotspots}}
-#' 
-#' @author Tyler D. Hether 
-#' 
-#' @export sim_en_masse
-#' 
-#' @examples
-#' set.seed(1234567) # For reproducibility
-#' # simulate a recombination hotspot between the 100th and 101st snp
-#' l=100; scale = 0.01; snps=1:l
-#' n.spores <- 500 # number of spores to simulate
-#' spores <- sim_en_masse(n.spores=n.spores, scale=scale, snps=snps, 
-#' p.assign=.999, mu.rate=0.001, f.cross=0.5, 
-#'     f.convert=0.5, length.conversion=10, coverage=1)
-
-sim_en_masse <- function(n.spores, scale, snps, p.assign, mu.rate, f.cross, f.convert, length.conversion, coverage){
-
-    out <- lapply(1:n.spores, function(Z, ...){
-
-        r <- recombine_index(scale, snps)
-        p <- make_parents(snps)
-        recomb_sim <- recombine(parents=p, r.index=r, mu.rate=mu.rate, f.cross=f.cross, 
-                f.convert=f.convert, length.conversion=length.conversion)
-        sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p.assign, coverage=coverage)
-        to.pick <- sample(c(1:4), 1)
-        class(sim_reads[[to.pick]]) <- list("single.spore")
-        return(sim_reads[[to.pick]])
-    })
-    class(out) <- c("list", "en.masse")
     return(out)
 }
 

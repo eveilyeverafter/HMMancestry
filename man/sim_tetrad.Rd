@@ -2,44 +2,50 @@
 % Please edit documentation in R/simulate.R
 \name{sim_tetrad}
 \alias{sim_tetrad}
-\title{Simulate recombination of a given number of tetrads}
+\title{Simulate recombination across a given number of meiosis events}
 \usage{
 sim_tetrad(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.convert,
-  length.conversion, coverage)
+  length.conversion, coverage, chr.name = "I")
 }
 \arguments{
 \item{n.tetrads}{An integer specifying the number of tetrads to simulate.}
 
 \item{p.assign}{a numeric between 0 and 1 (inclusive) that gives the probability of
-correct sequencing assignment.}
+correct sequencing assignment. A value of 1 means that no sequencing error or ancestral
+polymorphism is to be simulated.}
 
 \item{mu.rate}{a numeric between 0 and 1 (inclusive) specifying the per snp mutation rate.}
 
 \item{f.cross}{a numeric between 0 and 1 (inclusive) giving the frequency of recombination
-events that result in crossing over. This is same as 1 minus the frequenc of non-crossovers.}
+events that result in crossing over. This is same as 1 minus the frequency of non-crossovers.}
 
 \item{f.convert}{a numeric between 0 and 1 (inclusive) that gives the frequency of gene conversion
 during recombination.}
 
 \item{length.conversion}{an integer specifying the mean (and variance) of a given gene conversion
-tract.}
+tract (in bps).}
 
-\item{coverage}{the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is
-sampled from a poisson distribution (i.e., lambda=\code{coverage})}
+\item{chr.name}{a numeric or character value specifying the chromosome name (default to "I")}
 
-\item{l}{an integer describing the number of loci to simulate.}
+\item{\code{scale}}{either vector of length 1 specifying the genome-wide recombination rate (Morgans/bp)
+or a vector of length \code{snps-1} specifying the recombination rate between all snps. In either
+case rates must be positive.}
 
-\item{rec}{a vector of length \code{l-1} that contains the the recombation rate
-between each snp.}
+\item{\code{snps}}{a vector gving the locations of snps along a chromosome}
+
+\item{r.index}{a vector of length \code{snps-1} specifying whether a recombination is to be
+simulated (1) or not (0) in between two adjacent snps.}
 }
 \value{
-A list of length n.tetrads of class \code{tetrad}. Each element of
-\code{tetrad} is itself a list of class \code{individual.tetrad}, which
-contains four lists, one for each spore, and three elements:
-\describe{
-	\item{p0.assign}{The number of reads that were simulated for parent 0.}
-	\item{p1.assign}{The number of reads taht were simulated for parent 1.}
-	\item{snps}{The snp id along the simulated chromosome.}
+A data.frame of class \code{tetrad}. Each row contains the following information:
+\itemize{
+	\item{Tetrad}{ The tetrad ID}
+	\item{Spore}{ The spore ID (1:4)}
+	\item{Chr}{ The chromosome name}
+ \item{Snp}{ The snp location (in bps)}
+ \item{p0}{ The number of reads that mapped to parent 0}
+ \item{p1}{ The number of reads that mapped to parent 1}
+ \item{states_given}{ The simulated states (0 or 1)}
 }
 }
 \description{
@@ -47,12 +53,19 @@ This is a wrapper function of many other functions that simulates a given number
 tetrads each with four haploid spores that are recombinants between two parents.
 }
 \examples{
-set.seed(1234567) # For reproducability
-# simulate a recombination hotspot between the 99th and 100th snp
-l=200; scale = 0.01; snps=2*(1:l);
-n.tetrads <- 100 # number of spores to simulate
-res <- sim_tetrad(n.tetrads=n.tetrads, l=l, scale=scale, snps=snps, p.assign=0.999,
-   mu.rate=0, f.cross=0.8, f.convert=0.9, length.conversion=10, coverage=2.5)
+# Simulating 100 recombination events
+set.seed(1234567)        # For reproducibility
+n_tetrads <- 100         # number of tetrads (meiosis events)
+l <- 50                  # number of snps to simulate
+c <- 3e-05               # recombination rate between snps (Morgan/bp)
+snps <- c(1:l)*2e4       # snps are evenly spaced 20kbp apart
+p_a <- 0.97              # assignment probability
+coverage <- 1            # mean coverage
+# Now simulate
+sim100 <- sim_tetrad(n.tetrads=n_tetrads, scale=c, snps=snps,
+	p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3,
+	length.conversion=2e3, coverage=2)
+sim100
 }
 \author{
 Tyler D. Hether

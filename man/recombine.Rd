@@ -58,7 +58,7 @@ gene conversion tract is sampled from a poission distribution with mean (varianc
 Note that the gene conversion tract will stop at the end of the chromosme if necessary.
 }
 \examples{
-set.seed(1234567)        # For reproducability
+set.seed(1234567)        # For reproducibility
 l <- 50                  # number of snps to simulate
 c <- 3e-05               # recombination rate between snps (Morgan/bp)
 snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
