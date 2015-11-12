@@ -119,7 +119,7 @@ recombine_index <- function(scale, snps){
 #' during recombination.
 #' 
 #' @param length.conversion an integer specifying the mean (and variance) of a given gene conversion 
-#' tract.
+#' tract (in bps).
 #' 
 #' @details This function simulates crossover events (with or without gene conversions)
 #' and non-crossover events given the parental snps and location of recombination events.
@@ -168,7 +168,6 @@ recombine_index <- function(scale, snps){
 #' recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
 #' 	f.cross=0.6, f.convert=0.2, length.conversion=15000) 
 #' recomb_sim
-
 
 recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, length.conversion=20){
 	if(!inherits(parents, "parent.genomes")){
@@ -245,37 +244,52 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 
 #' @title Simulate sequencing across simulated data:
 #' 
-#' @description This function simulates sequecing across simulated data of class \code{recombine}.
+#' @description This function populates simulated data of class \code{recombine} with
+#' read counts given a specified coverage and assignment probability.
 #' 
 #' @param simdata an object of class \code{recombine}
 #' 
 #' @param p.assign a numeric between 0 and 1 (inclusive) that gives the probability of 
-#' correct sequencing assignment.
+#' correct sequencing assignment. A value of 1 means that no sequencing error or ancestral 
+#' polymorphism is to be simulated. 
 #' 
-#' @param coverage the mean (and variance) of sequencing coverage to be simlated.  \code{coverage} is 
-#' sampled from a poisson distribution (i.e., lambda=\code{coverage})
+#' @param coverage the mean (and variance) of sequencing read coverage to be simlated.  \code{coverage} is 
+#' sampled from a poisson distribution.
+#'
+#' @return an object of class \code{simulated.coverage} providing the a list of simulated sequencing reads for 
+#' each parental type for each of the four haploid recombinants. There are four lists in the output -- one for
+#' each recombinant. Within each list the read counts for parent 0 and parent 1 are given as well as the snp locations
+#' and given (simulated) states. 
 #' 
-#' @return an object of class \code{snp.recom} providing the simulated sequencing reads for each parent.
-#' 
-#' @seealso \code{\link{recombine}}, \code{\link{estimate_anc_fwd_back}}
+#' @seealso \code{\link{recombine}}
 #' 
 #' @author Tyler D. Hether 
 #' 
 #' @export simulate_coverage
 #' 
 #' @examples
-#' set.seed(1234567) # For reproducability
-#' l <- 1000 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' r <- recombine_index(rep(rec, l-1)) # recombination rate between each snp (vector form)
-#' p_a <- .999 # probability of correct sequencing assignment (1-sequence error rate)
-#' p <- make_parents(l) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=.5, f.convert=1, length.conversion=10) # recombine parents
-#' sim_reads <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=1) # simulate sequencing coverage
+#' set.seed(1234567)        # For reproducability
+#' l <- 50                  # number of snps to simulate
+#' c <- 3e-05               # recombination rate between snps (Morgan/bp)
+#' snps <- c(1:l)*1e4       # snps are evenly spaced 10kbp apart
+#' p_a <- 0.97              # assignment probability
+#' coverage <- 1            # mean coverage
+#' p <- make_parents(snps)  # make the parents
+#' #
+#' # The recombination indeces are:
+#' r_points <- recombine_index(scale=c, snps=snps) 
+#' #
+#' # Now recombine the parents:
+#' recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
+#' 	f.cross=0.6, f.convert=0.2, length.conversion=15000) 
+#' # And finally simulated read coverage for each haploid recombinant
+#' sim_cov <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=coverage) # simulate sequencing coverage
+#' sim_cov
+
 
 simulate_coverage <- function(simdata, p.assign, coverage){
 	if(!inherits(simdata, "recombine")){
-		stop(paste("Object 'simdata' needs to be of class 'recombine'.", sep=""))
+		stop(paste("Object", simdata, " needs to be of class 'recombine'.", sep=""))
 	}
 
 	simulated.reads.total <- lapply(simdata$chromatids.recombined, function(i) return(rpois(i, coverage)))
@@ -306,7 +320,7 @@ simulate_coverage <- function(simdata, p.assign, coverage){
 	})
 	out[['snps']] <- simdata$parents$snps
 
-	class(out) <- c("list", "snp.recom")
+	class(out) <- c("list", "simulated.coverage")
 	return(out)
 }
 
