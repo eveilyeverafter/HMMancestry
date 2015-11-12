@@ -48,11 +48,11 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	        res_c <- ddply(dat, .(Ind, Chr), function(xx){
 	           if(ploidy=="haploid")
 	           {
-	           		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           		return(fb_haploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
 	           	}
 	           if(ploidy=="diploid")
 	           {
-	           		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           		return(fb_diploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
 	           	}
 	           
 	           })
@@ -122,11 +122,11 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 			res_c <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
 		    	   if(ploidy=="haploid")
 		    	   {
-		    	   		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		    	   		return(fb_haploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
 		    	   }
 		           if(ploidy=="diploid")
 		           {
-		           		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		           		return(fb_diploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
 		           }
 		           })
 
@@ -180,11 +180,11 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		new_xy_lnl <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
 		   if(ploidy=="haploid")
 		   {
-		   		return(c_est_fwd_back(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
+		   		return(fb_haploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
 		   }
 		   if(ploidy=="diploid")
 		   {
-		   		return(c_est_fwd_back_diploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
+		   		return(fb_diploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
 		   }
 		   })
 		# Return the lnL for each unique individual and chromosome

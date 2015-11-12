@@ -4,18 +4,30 @@
 #' @title Inferring hidden ancestry states from haploids
 #'
 #' @description stuff goes here
-#'@export
-c_est_fwd_back <- function(snp_locations, k0, k1, p_assign, p_trans) {
-    .Call('HMMancestry_c_est_fwd_back', PACKAGE = 'HMMancestry', snp_locations, k0, k1, p_assign, p_trans)
+#'
+#' @examples
+#' set.seed(1234567)        # For reproducibility
+#' n_spores <- 1            # number of tetrads (meiosis events)
+#' l <- 75                  # number of snps to simulate
+#' c <- 3.5e-05             # recombination rate between snps (Morgan/bp)
+#' snps <- c(1:l)*1.3e4     # snps are evenly spaced 20kbp apart
+#' p_a <- 0.95              # assignment probability
+#' coverage <- 2.1          # mean coverage
+#' # Now simulate
+#' sim1 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
+#'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
+#'  length.conversion=2e3, coverage=coverage)
+#' fb_haploid(snp_locations=sim1$Snp, k0=sim1$p0, k1=sim1$p1, p_assign=p_a, p_trans=c)
+#' @export
+fb_haploid <- function(snp_locations, k0, k1, p_assign, p_trans) {
+    .Call('HMMancestry_fb_haploid', PACKAGE = 'HMMancestry', snp_locations, k0, k1, p_assign, p_trans)
 }
 
+#' @title Inferring hidden ancestry states from diploids
+#'
+#' @description describe diploid alogorithm here.
 #'@export
-c_est_fwd_back_diploid <- function(snp_locations, k0, k1, p_assign, p_trans) {
-    .Call('HMMancestry_c_est_fwd_back_diploid', PACKAGE = 'HMMancestry', snp_locations, k0, k1, p_assign, p_trans)
-}
-
-#'@export
-lapply1 <- function(input, f) {
-    .Call('HMMancestry_lapply1', PACKAGE = 'HMMancestry', input, f)
+fb_diploid <- function(snp_locations, k0, k1, p_assign, p_trans) {
+    .Call('HMMancestry_fb_diploid', PACKAGE = 'HMMancestry', snp_locations, k0, k1, p_assign, p_trans)
 }
 

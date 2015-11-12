@@ -5,9 +5,9 @@
 
 using namespace Rcpp;
 
-// c_est_fwd_back
-DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP HMMancestry_c_est_fwd_back(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+// fb_haploid
+DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
+RcppExport SEXP HMMancestry_fb_haploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -16,13 +16,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type k1(k1SEXP);
     Rcpp::traits::input_parameter< double >::type p_assign(p_assignSEXP);
     Rcpp::traits::input_parameter< double >::type p_trans(p_transSEXP);
-    __result = Rcpp::wrap(c_est_fwd_back(snp_locations, k0, k1, p_assign, p_trans));
+    __result = Rcpp::wrap(fb_haploid(snp_locations, k0, k1, p_assign, p_trans));
     return __result;
 END_RCPP
 }
-// c_est_fwd_back_diploid
-DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
-RcppExport SEXP HMMancestry_c_est_fwd_back_diploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
+// fb_diploid
+DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans);
+RcppExport SEXP HMMancestry_fb_diploid(SEXP snp_locationsSEXP, SEXP k0SEXP, SEXP k1SEXP, SEXP p_assignSEXP, SEXP p_transSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -31,19 +31,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type k1(k1SEXP);
     Rcpp::traits::input_parameter< double >::type p_assign(p_assignSEXP);
     Rcpp::traits::input_parameter< double >::type p_trans(p_transSEXP);
-    __result = Rcpp::wrap(c_est_fwd_back_diploid(snp_locations, k0, k1, p_assign, p_trans));
-    return __result;
-END_RCPP
-}
-// lapply1
-List lapply1(List input, Function f);
-RcppExport SEXP HMMancestry_lapply1(SEXP inputSEXP, SEXP fSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< List >::type input(inputSEXP);
-    Rcpp::traits::input_parameter< Function >::type f(fSEXP);
-    __result = Rcpp::wrap(lapply1(input, f));
+    __result = Rcpp::wrap(fb_diploid(snp_locations, k0, k1, p_assign, p_trans));
     return __result;
 END_RCPP
 }

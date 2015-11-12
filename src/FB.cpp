@@ -18,9 +18,23 @@ double haldane(double d);
 //' @title Inferring hidden ancestry states from haploids
 //'
 //' @description stuff goes here
-//'@export
+//'
+//' @examples
+//' set.seed(1234567)        # For reproducibility
+//' n_spores <- 1            # number of tetrads (meiosis events)
+//' l <- 75                  # number of snps to simulate
+//' c <- 3.5e-05             # recombination rate between snps (Morgan/bp)
+//' snps <- c(1:l)*1.3e4     # snps are evenly spaced 20kbp apart
+//' p_a <- 0.95              # assignment probability
+//' coverage <- 2.1          # mean coverage
+//' # Now simulate
+//' sim1 <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
+//'  p.assign=p_a, mu.rate=0, f.cross=0.8, f.convert=0.3, 
+//'  length.conversion=2e3, coverage=coverage)
+//' fb_haploid(snp_locations=sim1$Snp, k0=sim1$p0, k1=sim1$p1, p_assign=p_a, p_trans=c)
+//' @export
 // [[Rcpp::export]]
-DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
+DataFrame fb_haploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
@@ -205,9 +219,12 @@ DataFrame c_est_fwd_back(NumericVector snp_locations, NumericVector k0, NumericV
     return out;
 }
 
+//' @title Inferring hidden ancestry states from diploids
+//'
+//' @description describe diploid alogorithm here.
 //'@export
 // [[Rcpp::export]]
-DataFrame c_est_fwd_back_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
+DataFrame fb_diploid(NumericVector snp_locations, NumericVector k0, NumericVector k1, double p_assign, double p_trans) {
     //    if (!dat.inherits("data.frame")) stop("Input must be a data.frame with 5 columns\nc(\"Tetrad\", \"Spore\", \"Chr\", \"Snp\", \"p0\", \"p1\")");
     
     /*
