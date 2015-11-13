@@ -14,14 +14,15 @@ install:
 
 
 build:
-	if [ -e HMMancestry.pdf ]; then rm HMMancestry.pdf; fi
 	R CMD build .
-	R CMD Rd2pdf -M ./ --title='HMMancestry' -o "HMMancestry.pdf"
 
 check: build
 	R CMD check --no-manual `ls -1tr HMMancestry*gz | tail -n1`
 	@rm -f `ls -1tr HMMancestry*gz | tail -n1`
 	@rm -rf HMMancestry.Rcheck
 
+doc: 
+	if [ -e HMMancestry.pdf ]; then rm HMMancestry.pdf; fi
+	R CMD Rd2pdf -M ./ --title='HMMancestry' -o "HMMancestry.pdf"
 # No real targets!
 .PHONY: all test document install
