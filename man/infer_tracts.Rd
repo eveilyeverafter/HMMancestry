@@ -10,19 +10,26 @@ infer_tracts(data, threshold_size = 2500)
 \item{\code{data}}{A data.frame with 7 columns:
  \enumerate{
      \item{c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")}
+     \item{\code{Tetrad} specifying the tetrad ID. Note that at the present
+         only one chromosome can be analyzed at a time (see details)}
+     \item{\code{Chr} giving the chromosome name. Note that at the present
+         only one chromosome can be analyzed at a time (see details)}
+     \item{\code{Snp} a vector of snp locations (in bps)}
+     \item{\code{one} the inferred states for spore 1}
+     \item{\code{two} the inferred states for spore 2}
+     \item{\code{three} the inferred states for spore 3}
+     \item{\code{four} the inferred states for spore 4}
 }}
 
 \item{\code{threshold_size}}{The size (in bps) of the threshold (see details)}
 }
 \value{
 A data.frame containing the following columns:
-\describe{
-     \item{tetrad}{The tetrad ID (default == 1)}
-     \item{chr}{The chromosome ID (default == "I")}
-     \item{type}{The type of inferred tract:}
-     \item{start_snp}{The starting snp position in base pairs}
-     \item{end_snp}{The ending snp position in base pairs}
-     \item{extent}{The size of the tract. For COnoGC, this extent is the s
+\enumerate{
+     \item{type}{ The type of inferred tract}
+     \item{start_snp}{ The starting snp position in base pairs}
+     \item{end_snp}{ The ending snp position in base pairs}
+     \item{extent}{ The size of the tract. For COnoGC, this extent is the s
            spanning region between flanking CO events.}
      }
 }
@@ -30,26 +37,56 @@ A data.frame containing the following columns:
 Infers different types of tracts (crossover, non-crossover, and gene conversion) along a
 chromosome
 }
+\details{
+Uses the 3 step classification scheme described in Hether et al. (in review)
+to identify the location of these specific CO, NCO, and telomeric gene conversion tracts.
+Specifically, \code{infer_tracts} attempts to identify the following tracts:
+     \itemize{
+         \item{2_2}{ a tract with 2:2 segregation}
+         \item{COyesGC}{ a region of gene conversion that was associated with a crossover event}
+         \item{COnoGC}{ a region between a crossover event that did not have a detectable gene conversion}
+         \item{NCO}{ a non-crossover; a gene conversion tract without crossing}
+         \item{GC_tel}{ a gene conversion tract located at the chromosome end}
+     }
+Note that currently only one tetrad and one chromosome at a time can be passed
+through \code{infer_tracts}. Using \code{ddply} from the package \code{plyr} can
+iteratively run through a dataset containing multiple tetrads and/or chromosomes
+(see examples below).
+}
 \examples{
-#Example 1: 1 tetrad
-set.seed(1) # For reproducability
-l <- 1000 # number of loci to simulate
-rec <- 0.01 # recombination rate between each snp
-r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
-p_a <- .999 # probability of correct sequencing assignment
-p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
-recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=0.6, f.convert=0.7, length.conversion=10) # recombine parents
-states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-library(plyr)
-df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
-df
-#hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
-#breaks=200, xlab="snp", main="start position of recombination point")
+set.seed(1234567)        # For reproducibility
+n_tetrads <- 3           # number of tetrads
+l <- 1000                # number of snps to simulate
+c <- 3e-05               # recombination rate between snps (Morgan/bp)
+snps <- c(1:l)*250       # snps are evenly spaced 250 bp apart
+p_a <- 0.95              # assignment probability
+coverage <- 1            # mean coverage
+# simulate tetrads
+tetrad <- sim_tetrad(n.tetrads=n_tetrads, scale=c, snps=snps,
+ p.assign=p_a, mu.rate=1e-03, f.cross=0.6, f.convert=0.8,
+ length.conversion=2e3, coverage=coverage)
+#' # Example 1 -- infer tracts directly from simulated data
+inf_tracts_sim <- plyr::ddply(as.data.frame(tetrad),
+    .(Tetrad, Chr), function(x){
+    return(infer_tracts(x))
+    })
+inf_tracts_sim
+#' # Example 2 -- infer tracts from inferred data
+inf_states <- ddply(tetrad, .(Tetrad, Spore, Chr),
+    function(x){
+    return(fb_haploid(snp_locations=x$Snp, p0=x$p0,
+    p1=x$p1, p_assign=p_a, scale=c))})
+inf_tracts_inf_states <- plyr::ddply(inf_states,
+        .(Tetrad, Chr), function(x){
+    return(infer_tracts(x))
+    })
+inf_tracts_inf_states
 }
 \author{
 Tyler D. Hether
 }
-\seealso{
-\code{\link{recombine_index}}, \code{\link{recombine}}, \code{\link{recombine_to_tetrad_states}}
+\references{
+Mancera, E., R. Bourgon, A. Brozzi, W. Huber and M. Steinmetz. 2009.
+Nature 454(7203): 479-485
 }
 
