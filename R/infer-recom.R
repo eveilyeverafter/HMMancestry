@@ -6,10 +6,8 @@
 #' @param \code{data} A data.frame with 7 columns:
 #'  \enumerate{
 #'      \item{c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")}
-#'      \item{\code{Tetrad} specifying the tetrad ID. Note that at the present
-#'          only one chromosome can be analyzed at a time (see details)}
-#'      \item{\code{Chr} giving the chromosome name. Note that at the present
-#'          only one chromosome can be analyzed at a time (see details)}
+#'      \item{\code{Tetrad} specifying the tetrad ID}
+#'      \item{\code{Chr} giving the chromosome name}
 #'      \item{\code{Snp} a vector of snp locations (in bps)}
 #'      \item{\code{one} the inferred states for spore 1}
 #'      \item{\code{two} the inferred states for spore 2}
@@ -28,11 +26,7 @@
 #'          \item{COnoGC}{ a region between a crossover event that did not have a detectable gene conversion}
 #'          \item{NCO}{ a non-crossover; a gene conversion tract without crossing}
 #'          \item{GC_tel}{ a gene conversion tract located at the chromosome end}
-#'      } 
-#' Note that currently only one tetrad and one chromosome at a time can be passed 
-#' through \code{infer_tracts}. Using \code{ddply} from the package \code{plyr} can
-#' iteratively run through a dataset containing multiple tetrads and/or chromosomes
-#' (see examples below). 
+#'      }  
 #'
 #' @return A data.frame containing the following columns:
 #' \enumerate{
@@ -47,8 +41,8 @@
 #' 
 #' @export infer_tracts
 #'
-#' @references Mancera, E., R. Bourgon, A. Brozzi, W. Huber and M. Steinmetz. 2009. 
-#' Nature 454(7203): 479-485
+#' @references Hether, T.D., C. G. Wiench1, and P.A. Hohenlohe (in review). 2015. Novel molecular and analytical tools 
+#' for efficient estimation of rates of meiotic crossover, non-crossover and gene conversion
 #' 
 #' @examples
 #' set.seed(1234567)        # For reproducibility
@@ -63,39 +57,40 @@
 #'  p.assign=p_a, mu.rate=1e-03, f.cross=0.6, f.convert=0.8, 
 #'  length.conversion=2e3, coverage=coverage)
 #' #' # Example 1 -- infer tracts directly from simulated data
-#' inf_tracts_sim <- plyr::ddply(as.data.frame(tetrad), 
-#'     .(Tetrad, Chr), function(x){
-#'     return(infer_tracts(x))
-#'     })
+#' inf_tracts_sim <- infer_tracts(tetrad)
 #' inf_tracts_sim
 #' #' # Example 2 -- infer tracts from inferred data
 #' inf_states <- ddply(tetrad, .(Tetrad, Spore, Chr), 
 #'     function(x){
 #'     return(fb_haploid(snp_locations=x$Snp, p0=x$p0, 
 #'     p1=x$p1, p_assign=p_a, scale=c))})
-#' inf_tracts_inf_states <- plyr::ddply(inf_states, 
-#'         .(Tetrad, Chr), function(x){
-#'     return(infer_tracts(x))
-#'     })
+#' inf_tracts_inf_states <- infer_tracts(inf_states)
 #' inf_tracts_inf_states
 
-infer_tracts <- function(data, threshold_size=2.5e3){
+infer_tracts <- function(dat, threshold_size=2.5e3){
+    dat <- as.data.frame(dat)
+    if(dim(dat)[2]!=7 & dim(dat)[2]!=18){
+        stop(paste("object dat needs to come from either sim_tetrad or fb_haploid"))
+    }
+    if(dim(dat)[2]==18){
+        dat <- dat[,c(1,2,3,4,5,6,17)]
+    }
+    colnames(dat) <- c("Tetrad", "Spore", "Chr",  "Snp", "p0", "p1", "states")
 
-    # Reshape from long to wide
-    data <- fb_to_tetrad_states(data)
-    # Check and sort the data
-    checked_data <- prep_infer_tracts_data(data) 
+    
+    out_all <- plyr::ddply(as.data.frame(dat), .(Tetrad, Chr), function(data){
 
-    # identify regions in each tetrad and each chromosome
-    CO_summary <- summarize_regions(checked_data)
-    # Now do the algorithm (both parts)
-    # What are the unique regions?
-    regions <- unique(CO_summary$type)
+        # Reshape from long to wide
+        data <- fb_to_tetrad_states(data)
+        # Check and sort the data
+        checked_data <- prep_infer_tracts_data(data) 
 
-    # OUT <- ddply(sum_regions, .(Tetrad, Chr), function(CO_summary){
+        # identify regions in each tetrad and each chromosome
+        CO_summary <- summarize_regions(checked_data)
+        # Now do the algorithm (both parts)
+        # What are the unique regions?
+        regions <- unique(CO_summary$type)
 
-        # CO_summary <- x
-        # Go through the chromosome and call each region as a specific 'tract':
         outlist <- lapply(regions, function(res, ...){
         
             # print(res)
@@ -177,7 +172,8 @@ infer_tracts <- function(data, threshold_size=2.5e3){
         # Return output of inferred tracts along the chromosome 
         # out <- out[,-1] # Housekeeping
         colnames(out2) <- c("region", "tetrad", "chr", "type", "start_snp", "end_snp", "extent", "bias", "pattern")
-        class(out2) <- c("data.frame", "inferred.tracts")
+        # class(out2) <- c("data.frame", "inferred.tracts")
+        class(out2) <- c("data.frame")
 
 
     # return(out)
@@ -276,11 +272,11 @@ infer_tracts <- function(data, threshold_size=2.5e3){
         # Housekeeping:
         out4 <- out4[,-c(1,2,3)]
         return(out4)
-    # })
+    })
    
     # Housekeeping: 
     # OUT <- OUT[,-c(3,4,5)]
-    # return(OUT)
+    return(out_all)
 }
 
 #' @title Identify crossover points from state sequences and snp locations

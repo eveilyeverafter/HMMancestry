@@ -285,7 +285,8 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 #' recomb_sim <- recombine(parents=p, r.index=r_points, mu.rate=1e-05, 
 #' 	f.cross=0.6, f.convert=0.2, length.conversion=15000) 
 #' # And finally simulated read coverage for each haploid recombinant
-#' sim_cov <- simulate_coverage(simdata=recomb_sim, p.assign=p_a, coverage=coverage) # simulate sequencing coverage
+#' sim_cov <- simulate_coverage(simdata=recomb_sim, 
+#'  p.assign=p_a, coverage=coverage) 
 #' sim_cov
 
 simulate_coverage <- function(simdata, p.assign, coverage){

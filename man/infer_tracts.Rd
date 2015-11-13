@@ -4,16 +4,14 @@
 \alias{infer_tracts}
 \title{Identify crossover, non-crossover, and gene conversion tracts}
 \usage{
-infer_tracts(data, threshold_size = 2500)
+infer_tracts(dat, threshold_size = 2500)
 }
 \arguments{
 \item{\code{data}}{A data.frame with 7 columns:
  \enumerate{
      \item{c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")}
-     \item{\code{Tetrad} specifying the tetrad ID. Note that at the present
-         only one chromosome can be analyzed at a time (see details)}
-     \item{\code{Chr} giving the chromosome name. Note that at the present
-         only one chromosome can be analyzed at a time (see details)}
+     \item{\code{Tetrad} specifying the tetrad ID}
+     \item{\code{Chr} giving the chromosome name}
      \item{\code{Snp} a vector of snp locations (in bps)}
      \item{\code{one} the inferred states for spore 1}
      \item{\code{two} the inferred states for spore 2}
@@ -48,10 +46,6 @@ Specifically, \code{infer_tracts} attempts to identify the following tracts:
          \item{NCO}{ a non-crossover; a gene conversion tract without crossing}
          \item{GC_tel}{ a gene conversion tract located at the chromosome end}
      }
-Note that currently only one tetrad and one chromosome at a time can be passed
-through \code{infer_tracts}. Using \code{ddply} from the package \code{plyr} can
-iteratively run through a dataset containing multiple tetrads and/or chromosomes
-(see examples below).
 }
 \examples{
 set.seed(1234567)        # For reproducibility
@@ -66,27 +60,21 @@ tetrad <- sim_tetrad(n.tetrads=n_tetrads, scale=c, snps=snps,
  p.assign=p_a, mu.rate=1e-03, f.cross=0.6, f.convert=0.8,
  length.conversion=2e3, coverage=coverage)
 #' # Example 1 -- infer tracts directly from simulated data
-inf_tracts_sim <- plyr::ddply(as.data.frame(tetrad),
-    .(Tetrad, Chr), function(x){
-    return(infer_tracts(x))
-    })
+inf_tracts_sim <- infer_tracts(tetrad)
 inf_tracts_sim
 #' # Example 2 -- infer tracts from inferred data
 inf_states <- ddply(tetrad, .(Tetrad, Spore, Chr),
     function(x){
     return(fb_haploid(snp_locations=x$Snp, p0=x$p0,
     p1=x$p1, p_assign=p_a, scale=c))})
-inf_tracts_inf_states <- plyr::ddply(inf_states,
-        .(Tetrad, Chr), function(x){
-    return(infer_tracts(x))
-    })
+inf_tracts_inf_states <- infer_tracts(inf_states)
 inf_tracts_inf_states
 }
 \author{
 Tyler D. Hether
 }
 \references{
-Mancera, E., R. Bourgon, A. Brozzi, W. Huber and M. Steinmetz. 2009.
-Nature 454(7203): 479-485
+Hether, T.D., C. G. Wiench1, and P.A. Hohenlohe (in review). 2015. Novel molecular and analytical tools
+for efficient estimation of rates of meiotic crossover, non-crossover and gene conversion
 }
 
