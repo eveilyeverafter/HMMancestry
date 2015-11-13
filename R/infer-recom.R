@@ -1,13 +1,22 @@
 #' @title Identify crossover, non-crossover, and gene conversion tracts
 #' 
 #' @description Infers different types of tracts (crossover, non-crossover, and gene conversion) along a 
-#' chromosome given genotyped yeast tetrads or simulated data
+#' chromosome
 #' 
-#' @param data a \code{states.matrix} or \code{forward.backward} object inherited from either 
-#' \code{recombine_to_tetrad_states} or \code{estimate_anc_fwd_back} 
+#' @param \code{data} A data.frame with 7 columns:
+#'  \enumerate{
+#'      \item{c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")}
+#'      \item{\code{Tetrad} specifying the tetrad ID}
+#'      \item{\code{Chr} giving the chromosome name. Note that at the present
+#'          only one chromosome can be analyzed at a time (see details)}
+#'      \item{\code{Snp} a vector of snp locations (in bps)}
+#'      \item{\code{one} the inferred states for spore 1}
+#'      \item{\code{two} the inferred states for spore 2}
+#'      \item{\code{three} the inferred states for spore 3}
+#'      \item{\code{four} the inferred states for spore 4}
+#' }
 #' 
-#' @param threshold_size numeric. If a 2:2 tract is smaller than this value then
-#'    it is considered a (part of a) gene converson tract. 
+#' @param \code{threshold_size} The size (in bps) of the threshold (see details)
 #' 
 #' @return A data.frame containing the following columns:
 #' \describe{
@@ -20,45 +29,13 @@
 #'            spanning region between flanking CO events.}
 #'      } 
 #' 
-#' @seealso \code{\link{recombine_index}}, \code{\link{recombine}}, \code{\link{recombine_to_tetrad_states}}
-#' 
 #' @author Tyler D. Hether
 #' 
 #' @export infer_tracts
 #' 
-#' @importFrom plyr ddply
 #'
 #' @examples
 #' #Example 1: 1 tetrad
-#' set.seed(1) # For reproducability
-#' l <- 1000 # number of loci to simulate
-#' rec <- 0.01 # recombination rate between each snp
-#' r <- recombine_index(rec, 1:l) # recombination rate between each snp (vector form)
-#' p_a <- .999 # probability of correct sequencing assignment
-#' p <- make_parents(floor(seq(from=1, to=1e5, length.out=l))) # make the parent
-#' recomb_sim <- recombine(parents=p, r.index=r, mu.rate=0, f.cross=0.6, f.convert=0.7, length.conversion=10) # recombine parents
-#' states <- recombine_to_tetrad_states(tetrad_data=recomb_sim) # convert to tetrad.states object
-#' library(plyr)
-#' df <- ddply(states, .(Tetrad, Chr), infer_tracts, threshold_size=1e3)
-#' df
-#' #hist(dplyr::filter(df, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
-#' #breaks=200, xlab="snp", main="start position of recombination point")
-#
-#' # Example 2: 100 simulated tetrads with a recombination hotspot
-#' set.seed(1) # For reproducability
-#' rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
-#' res <- sim_tetrad(n.tetrads=250, l=200, rec=rec, p.assign=0.999, 
-#'    mu.rate=0, f.cross=0.8, f.convert=0, length.conversion=0, coverage=0.5)
-#' snp.dat <- tetrad_to_df(res)
-#' # Get the inferred states
-#' states1 <- ddply(snp.dat, .(Tetrad, Spore, Chr), function(x){
-#'     est_fwd_back(snp.dat=x, p.assign=0.999, p.trans=0.01)
-#'     })
-#' states2 <- fwd_back_to_tetrad_states(fb_data=states1)
-#' df1 <- ddply(states2, .(Tetrad, Chr), infer_tracts)
-#' 
-#' hist(dplyr::filter(df1, type=="COyesGC" | type=="COnoGC" | type=="NCO")$start_snp,
-#'  breaks=200, xlab="snp", main="start position of recombination point")
 
 infer_tracts <- function(data, threshold_size=2.5e3){
 
@@ -269,7 +246,7 @@ infer_tracts <- function(data, threshold_size=2.5e3){
 #' 
 #' @param \code{snps_genotypes_df} a data.frame with two columns:
 #'   \itemize{
-#'      \item{Snps}{ a vector of ordered snp locations (in bps)}
+#'      \item{snps}{ a vector of ordered snp locations (in bps)}
 #'      \item{states}{ a vector of corresponding inferred states, either haploid
 #'       (2 states = 0 or 1) or diploid with three states possible (0,1,2)}
 #'    }
