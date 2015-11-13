@@ -262,63 +262,33 @@ infer_tracts <- function(data, threshold_size=2.5e3){
     # return(OUT)
 }
 
-#' @title Identify recombination points from state sequences
+#' @title Identify crossover points from state sequences and snp locations
 #' 
 #' @description This is a simple function that takes a vector of parental states
-#' along a chromosome and identifies where states have changed. Note: In this method, 
-#' a single base pair mutation is indistinguishable from a double recombination event. 
+#' along a chromosome and identifies where states have changed.  
 #' 
-#' @param state.vector a vector of state values (0 or 1)
+#' @param \code{snps_genotypes_df} a data.frame with two columns:
+#'   \itemize{
+#'      \item{Snps}{ a vector of ordered snp locations (in bps)}
+#'      \item{states}{ a vector of corresponding inferred states, either haploid
+#'       (2 states = 0 or 1) or diploid with three states possible (0,1,2)}
+#'    }
 #'
-#' @return a vector of length \code{state.vector} stating whether a recombination 
-#' event occured (1) or not (0).
+#' @return a data.frame containing the midpoint between focal snp \eqn{i} and snp 
+#' \eqn{i-1} and whether their states were the same (0) or different (1). 
 #' 
-#' @seealso \code{\link{sim_en_masse}}
+#' @seealso \code{\link{fb_haploid}}, \code{\link{fb_diploid}}
 #'
-#' @importFrom dplyr filter
-#' 
 #' @author Tyler D. Hether 
 #' 
 #' @export id_recombination_events
 #' 
 #' @examples
-#' # Example 1: simple
-#' # A recombination occurred between snp 3 and 4 and between 8 and 9.
-#' statepath <- c(0,0,0,1,1,1,1,1,0,0,0)
-#' id_recombination_events(state.vector=statepath)
-#' which(id_recombination_events(state.vector=statepath)==1)
-#' #
-#' # Example 2: complex
-#' set.seed(1) # For reproducability
-#' # simulate a recombination hotspot between the 99th and 100th snp
-#' rec <- c(rep(0.001, 99), 0.4, rep(0.001, 99))
-#' # simulate 500 spores en masse
-#' n.spores <- 500 
-#' spores <- sim_en_masse(n.spores=n.spores, l=200, rec=rec, 
-#'  p.assign=.999, mu.rate=0.001, f.cross=0.5, 
-#'     f.convert=0.5, length.conversion=10, coverage=1)
-#' # Convert to dataframe
-#' snp.dat <- en_masse_to_df(spores)
-#' # Infer states
-#' states1 <- ddply(snp.dat, .(Tetrad, Spore, Chr), function(x){
-#'     est_fwd_back(snp.dat=x, p.assign=0.999, p.trans=mean(rec))
-#'     })
-#' # ddply through each spore to find recombination points (rpts)
-#' df <- ddply(states1, .(Spore), function(x){
-#'     rpts <- which(id_recombination_events(x$states_inferred)==1)
-#'     npts <- length(rpts)
-#'     return(data.frame(rpts=rpts))
-#'     })
-#' # Plot
-#' hist(df$rpts, breaks=200, xlab="snp", 
-#'     main="recombination frequency")
+#' df <- data.frame(snps=100*(1:10), 
+#'    states=c(rep(0,4), rep(1,6)))
+#' id_recombination_events(df)
 
 id_recombination_events <- function(snps_genotypes_df){ 
-        # snps is a vector containing the snp locations 
-        # genotypes is a vector of corresponding genotypes
-        # colnames(snps_genotypes_df) <- c("snp", "genotype")
-        # snps_genotypes_df <- snps_genotypes_df[with(snps_genotypes_df, order(snp)),]
-
 
         dims <- dim(snps_genotypes_df)[1]
         if(dims<=1){

@@ -11,6 +11,6 @@ LazyLoad: yes
 Packaged: 2015-01-15 10:10:27 UTC; tdh
 Repository: http://github.com/tylerhether/HMMancestry
 Date/Publication: 2012-08-16 13:47:50
-Depends: plyr (>= 1.8.3), dplyr (>= 0.4.1), lattice (>= 0.20-33)
+Depends: plyr (>= 1.8.3), lattice (>= 0.20-33)
 Imports: Rcpp (>= 0.11.3)
 LinkingTo: Rcpp

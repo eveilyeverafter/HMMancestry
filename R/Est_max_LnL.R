@@ -1,15 +1,15 @@
-#' @title Estimate genome-wide recombination rate and assigment probability
+#' @title Numerically Estimating the Maximum LnL parameter values from the data
 #' 
 #' @description Infers the genome-wide recombination rate (Morgans / bp) and the assignment 
-#' probabilty directly from the data using maximum likelihood estimates
+#' probabilty directly from the data using maximum likelihood estimates. 
 #' 
 #' @param dat a data.frame with five columns: 
-#'   \itemize {
-#'		\item \code{Ind} The individual ID
-#'		\item \code{Chr} The chromosome ID
-#'		\item \code{Snp} The (sorted) snp location (in bps)
-#'		\item \code{p0} The number of reads that mapped to parent 0
-#'		\item \code{p1} The number of reads that mapped to parent 1
+#'   \itemize{
+#'		\item \code{Ind}{ The individual ID}
+#'		\item \code{Chr}{ The chromosome ID}
+#'		\item \code{Snp}{ The (sorted) snp location (in bps)}
+#'		\item \code{p0}{ The number of reads that mapped to parent 0}
+#'		\item \code{p1}{ The number of reads that mapped to parent 1}
 #'	} 
 #' Note that the names of the columns can be different and there can be additional columns to the right (\code{est_maxLnL} only uses the 
 #' first 5 columns of the data.frame).
@@ -25,36 +25,57 @@
 #' If "NULL" (default), then a coarse search will be performed \code{n_coarse_steps} equally spaced from 
 #' 1e-06 to 1e-04.
 #'
-#' @param \code{tolerance} The tolerance used to stop the search (see details).
+#' @param \code{tolerance} The tolerance used to stop the search.
 #'
 #' @param \code{n_coarse_steps} The size of the 1D (if either \code{initial_p_assign} or \code{initial_scale} is "NULL") or
 #' 2D grid (if both are "NULL"). Increasing \code{n_coarse_steps} can greatly increase computation time. 
 #' 
 #' @param \code{n_iterations} The number of iterations during the fine scale parameter estimate serach (see details).
 #' 
+#' @details \code{est_maxLnL} has a coarse and fine scale method to estimate 
+#' the genome-wide recombination rate, \eqn{\hat{c}}, and assignement probability, \eqn{\hat{p}}.
+#' The coarse scale uses either \code{fb_haploid} or \code{fb_diploid} output and estimates
+#' the natural log-likelihood, LnL, of the data across a coarse (in parameter space) grid of varying
+#' \eqn{p} or \eqn{c} values and the fine scale uses a two-variable Newton-Raphson method to hone 
+#' in on a closer estimate. For further details see Hether et al. (in prep). 
+#'
 #' @return A data.frame containing the following columns:
-#' \describe{
-#'      \item{p_assign_hat} An estimate of \eqn{\hat{p_{assign}}}
-#'      \item{scale_hat} An estimate of \eqn{\hat{scale}}
-#'      \item{n_iterations} The number of iteractions
+#' \itemize{
+#'      \item{p_assign_hat}{ An estimate of the assignment probability}
+#'      \item{scale_hat}{ An estimate of mean recombination rate}
+#'      \item{n_iterations}{ The number of iterations carried out}
 #'      } 
-#' 
+#'
+#' @references Hether, T.D., C. G. Wiench1, and P.A. Hohenlohe (in review). 2015. Novel molecular and analytical tools 
+#' for efficient estimation of rates of meiotic crossover, non-crossover and gene conversion
+#'
+#' P. Deuflhard, Newton Methods for Nonlinear Problems. Affine Invariance and Adaptive Algorithms. Springer 
+#' Series in Computational Mathematics, Vol. 35. Springer, Berlin, 2004.
+#'
 #' @seealso \code{\link{fb_haploid}}, \code{\link{fb_haploid}}
 #' 
 #' @author Tyler D. Hether
 #' 
 #' @export est_maxLnL
-#' 
-#' @importFrom plyr ddply
 #'
 #' @examples
-#' #Example 1: 1 tetrad
-#' example(sim_en_masse)
-#' #require(lattice); require(plyr)
-#' res <- est_maxLnL(sim5, ploidy="haploid", plot=TRUE)
+#' # Simulating 30 haploid recombinants
+#' set.seed(1234567)        # For reproducibility
+#' n_spores <- 30           # number of recombinants
+#' l <- 1000                # number of snps to simulate
+#' c <- 1e-06               # recombination rate between snps (Morgan/bp)
+#' snps <- c(1:l)*1e2       # snps are evenly spaced 100bps apart
+#' p_a <- 0.985             # assignment probability
+#' coverage <- 1            # mean coverage
+#' # Now simulate
+#' sim <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps, 
+#' 	p.assign=p_a, mu.rate=0, f.cross=1, f.convert=0, 
+#' 	length.conversion=0, coverage=coverage)
+#' # Now estmate params
+#' res <- est_maxLnL(sim, ploidy="haploid", plot=TRUE)
 #' res
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale="NULL", tolerance=1e-04, n_coarse_steps=5, n_iterations=30, plot=FALSE)
+est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale="NULL", tolerance=1e-03, n_coarse_steps=5, n_iterations=30, plot=FALSE)
 {
 	# initial iteration
 	n = 0 
@@ -141,7 +162,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		    }
 		    if(initial_p_assign=="NULL" && initial_scale=="NULL")
 		    {
-	    		print(contourplot(LnL~p_assign*scale, data=LnL, region=TRUE, cuts=6))
+	    		print(lattice::contourplot(LnL~p_assign*scale, data=LnL, region=TRUE, cuts=6))
 		    }
 	    }
 
