@@ -35,7 +35,7 @@ hotspots, average length of a gene conversion tracts, and more.
 
 
 To build:
-1) Have the R package devtools installed
+1) Have the R package devtools and roxygen2 installed
 2) Have git installed on your machine
 3) Open Terminal, pull down the repo, and cd into the directory
 4) type the following:
