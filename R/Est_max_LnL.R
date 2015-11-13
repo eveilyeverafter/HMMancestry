@@ -1,7 +1,60 @@
-
-
+#' @title Estimate genome-wide recombination rate and assigment probability
+#' 
+#' @description Infers the genome-wide recombination rate (Morgans / bp) and the assignment 
+#' probabilty directly from the data using maximum likelihood estimates
+#' 
+#' @param dat a data.frame with five columns: 
+#'   \itemize {
+#'		\item \code{Ind} The individual ID
+#'		\item \code{Chr} The chromosome ID
+#'		\item \code{Snp} The (sorted) snp location (in bps)
+#'		\item \code{p0} The number of reads that mapped to parent 0
+#'		\item \code{p1} The number of reads that mapped to parent 1
+#'	} 
+#' Note that the names of the columns can be different and there can be additional columns to the right (\code{est_maxLnL} only uses the 
+#' first 5 columns of the data.frame).
+#' 
+#' @param \code{ploidy} The ploidy to analyze. If \code{ploidy="diploid"} (default) then
+#' \code{\link{fb_diploid}} is used to infer states and estimate likelihood. If \code{ploidy="haploid"}
+#' then \code{\link{fb_haploid}} will be used. 
+#'
+#' @param \code{initial_p_assign} The initial assignment probability (see details). If "NULL" (default), then a coarse search will be performed with
+#' \code{n_coarse_steps} equally spaced from 0.95 to 0.999. 
+#' 
+#' @param \code{initial_scale} The initial genome-wide recombination rate (Morgans / bp). 
+#' If "NULL" (default), then a coarse search will be performed \code{n_coarse_steps} equally spaced from 
+#' 1e-06 to 1e-04.
+#'
+#' @param \code{tolerance} The tolerance used to stop the search (see details).
+#'
+#' @param \code{n_coarse_steps} The size of the 1D (if either \code{initial_p_assign} or \code{initial_scale} is "NULL") or
+#' 2D grid (if both are "NULL"). Increasing \code{n_coarse_steps} can greatly increase computation time. 
+#' 
+#' @param \code{n_iterations} The number of iterations during the fine scale parameter estimate serach (see details).
+#' 
+#' @return A data.frame containing the following columns:
+#' \describe{
+#'      \item{p_assign_hat} An estimate of \eqn{\hat{p_{assign}}}
+#'      \item{scale_hat} An estimate of \eqn{\hat{scale}}
+#'      \item{n_iterations} The number of iteractions
+#'      } 
+#' 
+#' @seealso \code{\link{fb_haploid}}, \code{\link{fb_haploid}}
+#' 
+#' @author Tyler D. Hether
+#' 
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale=5e-05, tolerance=1e-04, n_coarse_steps=5, n_iterations=30, plot=FALSE)
+#' 
+#' @importFrom plyr ddply
+#'
+#' @examples
+#' #Example 1: 1 tetrad
+#' example(sim_en_masse)
+#' #require(lattice); require(plyr)
+#' res <- est_maxLnL(sim5, ploidy="haploid", plot=TRUE)
+#' res
+#' @export est_maxLnL
+est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale="NULL", tolerance=1e-04, n_coarse_steps=5, n_iterations=30, plot=FALSE)
 {
 	# initial iteration
 	n = 0 
@@ -45,7 +98,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
     
 	    # Estimate the most likely set of starting values 
 	    coarse_res <- lapply(1:dim(pars)[1], function(yy){
-	        res_c <- ddply(dat, .(Ind, Chr), function(xx){
+	        res_c <- plyr::ddply(dat, .(Ind, Chr), function(xx){
 	           if(ploidy=="haploid")
 	           {
 	           		return(fb_haploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
@@ -57,7 +110,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	           
 	           })
 	        # Return the lnL for each unique tetrad, spore, & chr
-	        res_lnl <- ddply(res_c, .(Ind, Chr), function(z){
+	        res_lnl <- plyr::ddply(res_c, .(Ind, Chr), function(z){
 	          return(z$lnL[1])
 	          })
 	      	return(data.frame(p_assign=pars[yy,1], scale=pars[yy,2], lnL=res_lnl))
@@ -119,7 +172,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 
 		lnls <- lapply(points, function(fun){
 			# Call the hmm and get the lnl for each unique individual by chromosome combination
-			res_c <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
+			res_c <- plyr::ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
 		    	   if(ploidy=="haploid")
 		    	   {
 		    	   		return(fb_haploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
@@ -131,7 +184,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		           })
 
 		    # Return the lnL for each unique individual and chromosome
-		     res_lnl <- ddply(res_c, .(Ind, Chr), function(z){
+		     res_lnl <- plyr::ddply(res_c, .(Ind, Chr), function(z){
 		          return(z$lnL[1])
 		          })
 		     # Sum over the above lnl to get the total lnl for all data
@@ -177,7 +230,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 
 		# See if the new xy point has a higher lnl than all 6 points. 
 		# If it is greater, accept the move. 
-		new_xy_lnl <- ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
+		new_xy_lnl <- plyr::ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
 		   if(ploidy=="haploid")
 		   {
 		   		return(fb_haploid(xx[,3], xx[,4], xx[,5], xy[1], xy[2]))
@@ -188,7 +241,7 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		   }
 		   })
 		# Return the lnL for each unique individual and chromosome
-		res_new_lnl <- ddply(new_xy_lnl, .(Ind, Chr), function(z){
+		res_new_lnl <- plyr::ddply(new_xy_lnl, .(Ind, Chr), function(z){
 		     return(z$lnL[1])
 		     })
 		# Sum over the above lnl to get the total lnl for all data

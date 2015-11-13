@@ -614,8 +614,6 @@ summarize_regions <- function(dat){
     return(out)
 }
 
-
-
 # Checks if object i is of class tetrad.states or a list of 4 elements, each of 
 #    class forward.backward
 check_class <- function(i){

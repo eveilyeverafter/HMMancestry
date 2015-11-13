@@ -3,7 +3,7 @@
 
 #' @title Inferring hidden ancestry states from haploids
 #'
-#' @description Uses the forward-backward algorithm to estimate ancestral genotypes 
+#' @description Uses the forward-backward algorithm to estimate ancestry 
 #' along a given chromosome for a given genotyped tetrad or simulated data.
 #'
 #' @param snp_locations a numeric vector specifying the locations of each snp (in bps). This
@@ -144,7 +144,7 @@ fb_haploid <- function(snp_locations, p0, p1, p_assign, scale) {
 
 #' @title Inferring hidden ancestry states from diploids
 #'
-#' @description Uses the forward-backward algorithm to estimate ancestral states 
+#' @description Uses the forward-backward algorithm to estimate ancestry 
 #' along a given chromosome for a given genotyped diploid.
 #'
 #' @param snp_locations a numeric vector specifying the locations of each snp (in bps). This
