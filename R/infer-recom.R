@@ -81,9 +81,9 @@ infer_tracts <- function(dat, threshold_size=2.5e3){
     out_all <- plyr::ddply(as.data.frame(dat), .(Tetrad, Chr), function(data){
 
         # Reshape from long to wide
-        data <- fb_to_tetrad_states(data)
+        reshaped_data <- fb_to_tetrad_states(data)
         # Check and sort the data
-        checked_data <- prep_infer_tracts_data(data) 
+        checked_data <- prep_infer_tracts_data(reshaped_data) 
 
         # identify regions in each tetrad and each chromosome
         CO_summary <- summarize_regions(checked_data)
@@ -176,10 +176,6 @@ infer_tracts <- function(dat, threshold_size=2.5e3){
         class(out2) <- c("data.frame")
 
 
-    # return(out)
-    # })
-
-
         # Reclassifying temporary tracts:
 
 
@@ -259,15 +255,9 @@ infer_tracts <- function(dat, threshold_size=2.5e3){
 
         out3$extent <- (out3$end_snp - out3$start_snp) + 1
 
-
         # This identifies the approx location of COs without a detected gene conversion tract
         # print("Screening for COs without GCs...")
         out4 <- infer_COnoGC_tracts(out3)
-
-
-
-
-
 
         # Housekeeping:
         out4 <- out4[,-c(1,2,3)]
@@ -408,22 +398,24 @@ recombine_to_tetrad_states <- function(tetrad_data){
 # A function for converting a haploid fb dataset to a tetrad_states (used in infer_tracts)
 #' @export fb_to_tetrad_states
 fb_to_tetrad_states <- function(fb_data){
-    # For input, take the output of sim_tetrad, fb_haploid, or fb_diploid
+    # For input, take the output of sim_tetrad, fb_haploid
     if(dim(fb_data)[2]==7){
-        dat <- fb_data[,c(1,2,3,4,7)]
+        TMP <- fb_data[,c(1,2,3,4,7)]
        
     } else {
-        dat <- fb_data[,c('Tetrad', 'Spore', 'Chr', 'Snp', 'states_inferred')]
+        TMP <- fb_data[,c('Tetrad', 'Spore', 'Chr', 'Snp', 'states_inferred')]
     }
-    colnames(dat) <- c("Tetrad", "Spore", "Chr", "Snp", "states")
+    colnames(TMP) <- c("Tetrad", "Spore", "Chr", "Snp", "states")
+    
+    w <- reshape(TMP, 
+         timevar = "Spore",
+         idvar = c("Tetrad", "Chr", "Snp"),
+         direction = "wide")
 
-
-    # require(reshape2)
-    w <- reshape(dat, 
-      timevar = "Spore",
-      idvar = c("Tetrad", "Chr", "Snp"),
-      direction = "wide")
-    w <- w[complete.cases(w),]
+    if(!all(dim(w[complete.cases(w),])==dim(w))){
+        warning(paste("Some spores had missing data at 1 or more snps in Tetrad ", TMP[1,1], ", Chr ", TMP[1,2], ". Those snps will be removed.", sep=""))
+        w <- w[complete.cases(w),]
+    }   
     colnames(w) <- c("Tetrad", "Chr", "Snp", "one", "two", "three", "four")
     return(w)
 }
