@@ -434,7 +434,7 @@ sim_tetrad <- function(n.tetrads, scale, snps, p.assign, mu.rate, f.cross, f.con
 #' 
 #' @description This is a wrapper function of many other functions that simulates a given number of
 #' haploids each recombinant between two parents. As the name implies, information of the all four 
-#' products are lost since spores are random. See \code{\line{sim_tetrad}} if all four haploid recombinants 
+#' products are lost since spores are random. See \code{\link{sim_tetrad}} if all four haploid recombinants 
 #' are desired.
 #' 
 #' @param n.spores An integer specifying the number of spores to simulate.
