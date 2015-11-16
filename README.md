@@ -32,10 +32,16 @@ hotspots, average length of a gene conversion tracts, and more.
 * Advanced filial generations can be used to increase detection of hotspots
 * NCO and CO-associated gene conversion tracts cannot be determined with diploids since the algorithm doesn't use phase information.
 
-To install compiled version:
-* download HMMancestry_*.tar.gz
-* open the command line and navigate to the location of the package
-* use R CMD INSTALL HMMancestry_*.tar.gz to install (replacing * with the actual version number) 
+To install the compiled version, open R and install devtools:
+```
+install.packages("devtools")
+```
+Then install and load HMMancestry:
+```
+library(devtools)
+install_github("tylerhether/HMMancestry")
+library(HMMancestry)
+```
 
 To build from source:
 * Have the R package devtools and roxygen2 installed
