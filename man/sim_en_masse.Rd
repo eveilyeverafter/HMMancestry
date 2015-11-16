@@ -51,7 +51,7 @@ which contains three elements:
 \description{
 This is a wrapper function of many other functions that simulates a given number of
 haploids each recombinant between two parents. As the name implies, information of the all four
-products are lost since spores are random. See \code{\line{sim_tetrad}} if all four haploid recombinants
+products are lost since spores are random. See \code{\link{sim_tetrad}} if all four haploid recombinants
 are desired.
 }
 \examples{
