@@ -1,7 +1,7 @@
 Package HMMancestry
 =============
 
-->![alt text](/logo.png?raw=true)<-
+->![alt text](/logo.png)<-
 
 The package HMMancestry was designed to infer recombination breakpoints, hotspots, and coldspots 
 in high-throughput, next-generation sequence data, even when sequencing coverage is relatively 
