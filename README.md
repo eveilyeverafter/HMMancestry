@@ -2,7 +2,7 @@ Package HMMancestry
 =============
 
 <p align="center">
-![Image](/logo.png?raw=true)
+<img /logo.png?raw=true>
 </p>
 
 
