@@ -84,7 +84,7 @@ and parent "1" and \code{p_assign}. The emission probabilities are
 calculated using the binomial equation. For example, the emission
 probability for parental state "0" at snp position i is:
 
-\deqn{e_{i}^{(0)} = {n \choose{k_{0}}} p^{k0} (1-p)^{n-k_{0}}}
+\deqn{e_{i}^{(0)} = {n \choose{k_{0}}} p^{k_{0}} (1-p)^{n-k_{0}}}
 
 where \eqn{n} is the sum of the number of reads from both parents at snp \eqn{i} and \eqn{p}
 is the assignment probability, \code{p_assign}.
@@ -108,11 +108,11 @@ snp position \eqn{i} is:
 
 Again, these probabilities are rescaled to avoid underflow.
 
-The posterior probability that the state at position \eqn{i} is \eqn{k}
-given the observed sequence read counts for each parent at position i, \eqn{x_{i}}
+The posterior probability that the state at position \eqn{i} is \eqn{j}
+given the observed sequence read counts, \eqn{x_{i}}
 is calculated by:
 
-\deqn{P(\pi_{i} = k~|~x_{i}) = \frac{f_{i} b_{i}}{\sum\limits_{k=0}^{1} f_{i}^{(k)} b_{i}^{(k)}}}
+\deqn{P(\pi_{i} = j~|~x_{i}) = \frac{\mathbf{f}_{i}^{(j)} \mathbf{b}_{i}^{(j)}}{\mathbf{f}_{i}~\mathbf{b}_{i}}}
 
 Ties in posterior probabilities are rare with sufficient coverage and/or signal. However, in the event of a tie state 1 is picked.
 

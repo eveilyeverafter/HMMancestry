@@ -442,8 +442,8 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     }
     
     // Initial probability (at first snp position)
-    double pi_initial(0.3333);
-    
+    // double pi_initial(0.3333);
+    NumericVector pi_initial = NumericVector::create(0.25, 0.50, 0.25);
     /*
      
      SETUP & RUN
@@ -468,8 +468,8 @@ DataFrame fb_diploid(NumericVector snp_locations, NumericVector p0, NumericVecto
     // For the first position
     for(int i=0;i<3;i++)
     {
-        forward(0,i) = pi_initial*emissions(0,i);
-        // cout << pi_initial << " times " << emissions(0,i) << " equals " << forward(0,i) << "\t";
+        forward(0,i) = pi_initial(i)*emissions(0,i);
+        // cout << " " << pi_initial(i) << " times " << emissions(0,i) << " equals " << forward(0,i) << "\t";
     }
     // cout << endl;
     
