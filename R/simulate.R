@@ -186,11 +186,11 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 	# Recombine chromatids:
 	chromatids.recombined <- chromatids.mutated_snps
 	# type = 1
-	for(i in 1:(l-1)){
+	for(i in which(r.index==1)){
 		# Cases where there is a recombination event, pick
 		# two of the four chromatids to recombine:
 
-		if(i %in% which(r.index==1)){
+		# if(i %in% which(r.index==1)){
 			# If recobomination with sister chromatids is allowed:
 			# picked.chromatids <- sample(c(1:4), 2, replace=FALSE)
 
@@ -235,7 +235,7 @@ recombine <- function(parents, r.index, mu.rate=0, f.cross=0.5, f.convert=0, len
 			# Save results:
 			chromatids.recombined[[picked.chromatids[1]]] <- chromatids[,1]
 			chromatids.recombined[[picked.chromatids[2]]] <- chromatids[,2]
-		}
+		# }
 	}
 
 	out <- list(parents=parents, r.index=r.index, mu.rate=mu.rate, f.cross=f.cross, f.convert=f.convert, length.conversion=length.conversion,
