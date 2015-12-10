@@ -32,6 +32,8 @@
 #' 
 #' @param \code{n_iterations} The number of iterations during the fine scale parameter estimate serach (see details).
 #' 
+#' @param \code{n_cores} Integer specifying the number of processors to use
+#' 
 #' @details \code{est_maxLnL} has a coarse and fine scale method to estimate 
 #' the genome-wide recombination rate, \eqn{\hat{c}}, and assignement probability, \eqn{\hat{p}}.
 #' The coarse scale uses either \code{fb_haploid} or \code{fb_diploid} output and estimates
@@ -72,11 +74,13 @@
 #' 	p.assign=p_a, mu.rate=0, f.cross=1, f.convert=0, 
 #' 	length.conversion=0, coverage=coverage)
 #' # Now estmate params
-#' res <- est_maxLnL(sim, ploidy="haploid", plot=TRUE)
+#' res <- est_maxLnL(sim, ploidy="haploid", plot=TRUE, n_cores=5)
 #' res
 #' @export est_maxLnL
-est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_scale="NULL", tolerance=1e-03, n_coarse_steps=5, n_iterations=30, plot=FALSE)
+est_maxLnL <- function(dat, ploidy="haploid", initial_p_assign="NULL", initial_scale="NULL", tolerance=1e-03, n_coarse_steps=5, n_iterations=30, plot=FALSE, n_cores=1)
 {
+	# print(sessionInfo())
+
 	# initial iteration
 	n = 0 
 
@@ -117,16 +121,25 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		}
 		pars <-   expand.grid(x=x, y=y) 			# This is the grid
     
+
+		# Define the number of cores to use for parallel computing 
+		cl <- parallel::makeCluster(n_cores)
+		# Register cluster
+		parallel::clusterExport(cl, varlist=ls(), envir=environment())
+
 	    # Estimate the most likely set of starting values 
-	    coarse_res <- lapply(1:dim(pars)[1], function(yy){
+	    coarse_res <- parallel::parLapply(cl, 1:dim(pars)[1], function(yy){
+			require(plyr)
+			require(HMMancestry)
+
 	        res_c <- plyr::ddply(dat, .(Ind, Chr), function(xx){
 	           if(ploidy=="haploid")
 	           {
-	           		return(fb_haploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           		return(HMMancestry::fb_haploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
 	           	}
 	           if(ploidy=="diploid")
 	           {
-	           		return(fb_diploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
+	           		return(HMMancestry::fb_diploid(xx[,3], xx[,4], xx[,5], pars[yy,1], pars[yy,2]))
 	           	}
 	           
 	           })
@@ -136,6 +149,8 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 	          })
 	      	return(data.frame(p_assign=pars[yy,1], scale=pars[yy,2], lnL=res_lnl))
 	    })
+
+	    parallel::stopCluster(cl)
 
 	    LnL <- unlist(lapply(coarse_res, function(x){
 	        return(sum(x$lnL.V1))
@@ -191,16 +206,25 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		"x1y2" = c(x, (y+dy))
 		)
 
-		lnls <- lapply(points, function(fun){
+		# Define the number of cores to use for parallel computing 
+		cl <- parallel::makeCluster(n_cores)
+		# Register cluster
+		parallel::clusterExport(cl, varlist=ls(), envir=environment())
+
+		lnls <- parallel::parLapply(cl, points, function(fun){
+			require(plyr)
+			require(HMMancestry)
 			# Call the hmm and get the lnl for each unique individual by chromosome combination
 			res_c <- plyr::ddply(dat[,c(1:5)], .(Ind, Chr), function(xx){
+		    	 
+
 		    	   if(ploidy=="haploid")
 		    	   {
-		    	   		return(fb_haploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		    	   		return(HMMancestry::fb_haploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
 		    	   }
 		           if(ploidy=="diploid")
 		           {
-		           		return(fb_diploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
+		           		return(HMMancestry::fb_diploid(xx[,3], xx[,4], xx[,5], fun[1], fun[2]))
 		           }
 		           })
 
@@ -212,6 +236,8 @@ est_maxLnL <- function(dat, ploidy="diploid", initial_p_assign="NULL", initial_s
 		     lnl <- sum(res_lnl$V1)
 		     return(lnl)	
 		})
+
+	    parallel::stopCluster(cl)
 
 		# Here's the Hessian matrix
 		H <- matrix(c(

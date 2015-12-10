@@ -4,9 +4,9 @@
 \alias{est_maxLnL}
 \title{Numerically Estimating the Maximum LnL parameter values from the data}
 \usage{
-est_maxLnL(dat, ploidy = "diploid", initial_p_assign = "NULL",
+est_maxLnL(dat, ploidy = "haploid", initial_p_assign = "NULL",
   initial_scale = "NULL", tolerance = 0.001, n_coarse_steps = 5,
-  n_iterations = 30, plot = FALSE)
+  n_iterations = 30, plot = FALSE, n_cores = 1)
 }
 \arguments{
 \item{dat}{a data.frame with five columns:
@@ -37,6 +37,8 @@ If "NULL" (default), then a coarse search will be performed \code{n_coarse_steps
 2D grid (if both are "NULL"). Increasing \code{n_coarse_steps} can greatly increase computation time.}
 
 \item{\code{n_iterations}}{The number of iterations during the fine scale parameter estimate serach (see details).}
+
+\item{\code{n_cores}}{Integer specifying the number of processors to use}
 }
 \value{
 A data.frame containing the following columns:
@@ -72,7 +74,7 @@ sim <- sim_en_masse(n.spores=n_spores, scale=c, snps=snps,
 	p.assign=p_a, mu.rate=0, f.cross=1, f.convert=0,
 	length.conversion=0, coverage=coverage)
 # Now estmate params
-res <- est_maxLnL(sim, ploidy="haploid", plot=TRUE)
+res <- est_maxLnL(sim, ploidy="haploid", plot=TRUE, n_cores=5)
 res
 }
 \author{
